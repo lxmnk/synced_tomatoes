@@ -1,0 +1,2 @@
+defmodule SyncedTomatoes do
+end
