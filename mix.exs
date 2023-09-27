@@ -20,7 +20,7 @@ defmodule SyncedTomatoes.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/cases"]
+  defp elixirc_paths(:test), do: ["lib", "test"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
@@ -29,7 +29,8 @@ defmodule SyncedTomatoes.MixProject do
       {:jsonrs, "~> 0.3"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
-      {:construct, "== 3.0.0-rc.0"}
+      {:construct, "== 3.0.0-rc.0"},
+      {:ex_machina, "~> 2.7.0", only: :test}
     ]
   end
 

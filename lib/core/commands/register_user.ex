@@ -1,6 +1,4 @@
 defmodule SyncedTomatoes.Core.Commands.RegisterUser do
-  import Ecto.Changeset
-
   alias SyncedTomatoes.Core.User
   alias SyncedTomatoes.Repos.Postgres
 

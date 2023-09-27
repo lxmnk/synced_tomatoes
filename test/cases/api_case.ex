@@ -9,6 +9,7 @@ defmodule Test.Cases.APICase do
       use Plug.Test
 
       import Test.Cases.APICase
+      import SyncedTomatoes.Factory
     end
   end
 
