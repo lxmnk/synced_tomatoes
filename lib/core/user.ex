@@ -3,11 +3,13 @@ defmodule SyncedTomatoes.Core.User do
 
   import Ecto.Changeset
 
-  @primary_key false
+  alias SyncedTomatoes.Core.Settings
+
   @required_attrs ~w(login)a
 
   schema "users" do
-    field :login, :string, primary_key: true
+    has_one :settings, Settings
+    field :login, :string
 
     timestamps()
   end

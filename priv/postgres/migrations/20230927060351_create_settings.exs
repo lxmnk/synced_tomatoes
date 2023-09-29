@@ -9,6 +9,8 @@ defmodule SyncedTomatoes.Repos.Postgres.Migrations.CreateSettings do
       add :short_break_min, :integer
       add :long_break_min, :integer
       add :work_intervals_count, :integer
+
+      timestamps()
     end
   end
 end
