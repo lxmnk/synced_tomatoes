@@ -1,7 +1,7 @@
 defmodule SyncedTomatoes.Web.Endpoint do
   import Plug.Conn
 
-  alias SyncedTomatoes.Responses.{Error, Ok}
+  alias SyncedTomatoes.Web.API.Responses.{Error, Ok}
 
   defmacro __using__(_opts) do
     quote do
@@ -11,7 +11,7 @@ defmodule SyncedTomatoes.Web.Endpoint do
 
   defmacro endpoint(func) do
     quote do
-      alias SyncedTomatoes.Responses.{Error, Ok}
+      alias SyncedTomatoes.Web.API.Responses.{Error, Ok}
 
       def init(opts) do
         opts
@@ -52,7 +52,11 @@ defmodule SyncedTomatoes.Web.Endpoint do
   end
 
   def cast_result(%Ok{} = ok, conn) do
-    resp_body = Jsonrs.encode!(%{"status" => "ok", "result" => ok.result})
+    resp_body = Jsonrs.encode!(%{
+      "status" => "ok",
+      "result" => ok.result,
+      "info" => ok.info || "Success"
+    })
 
     conn
     |> put_resp_content_type("application/json")

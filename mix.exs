@@ -30,7 +30,9 @@ defmodule SyncedTomatoes.MixProject do
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
       {:construct, "== 3.0.0-rc.0"},
-      {:ex_machina, "~> 2.7.0", only: :test}
+      {:uuid, "~> 1.1"},
+      {:ex_machina, "~> 2.7.0", only: :test},
+      {:mint_web_socket, "~> 1.0", only: :test}
     ]
   end
 
