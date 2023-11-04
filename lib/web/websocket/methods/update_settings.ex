@@ -20,10 +20,10 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
 
   def map_params(params) do
     %{
-      "work_min" => Map.fetch!(params, "workMin"),
-      "short_break_min" => Map.fetch!(params, "shortBreakMin"),
-      "long_break_min" => Map.fetch!(params, "longBreakMin"),
-      "work_intervals_count" => Map.fetch!(params, "workIntervalsCount")
+      "work_min" => params.workMin,
+      "short_break_min" => params.shortBreakMin,
+      "long_break_min" => params.longBreakMin,
+      "work_intervals_count" => params.workIntervalsCount
     }
   end
 end

@@ -8,7 +8,7 @@ defmodule SyncedTomatoes.Web.WebSocket.Method do
     quote do
       @behaviour unquote(__MODULE__)
 
-      def call(context, params) do
+      def call(context, payload) do
         schema =
           case Code.ensure_compiled(__MODULE__.ParamsSchema) do
             {:module, _} ->
@@ -32,7 +32,7 @@ defmodule SyncedTomatoes.Web.WebSocket.Method do
             fn result -> result end
           end
 
-        with {:ok, payload} <- unquote(__MODULE__).validate_params(schema, params),
+        with {:ok, params} <- unquote(__MODULE__).validate_params(schema, payload),
              {:ok, result} <- __MODULE__.execute(context, map_params.(params))
         do
           {:ok, map_result.(result)}
