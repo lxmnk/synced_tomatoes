@@ -152,7 +152,7 @@ defmodule Test.Core.TimerTest do
     end
 
     test "makes timer paused", context do
-      %{paused?: true} = Timer.get_status(context.pid)
+      %{ticking?: false} = Timer.get_status(context.pid)
     end
 
     test "saves elixir timer value", context do
@@ -171,7 +171,7 @@ defmodule Test.Core.TimerTest do
       {:ok, pid} = GenServer.start_link(Timer, context.opts)
       :sys.replace_state(pid, fn state ->
         state
-        |> Map.put(:paused?, true)
+        |> Map.put(:ticking?, false)
       end)
 
       Timer.pause(pid)
@@ -180,7 +180,7 @@ defmodule Test.Core.TimerTest do
     end
 
     test "does nothing", context do
-      %{paused?: true} = Timer.get_status(context.pid)
+      %{ticking?: false} = Timer.get_status(context.pid)
     end
   end
 
@@ -189,7 +189,7 @@ defmodule Test.Core.TimerTest do
       {:ok, pid} = GenServer.start_link(Timer, context.opts)
       :sys.replace_state(pid, fn state ->
         state
-        |> Map.put(:paused?, true)
+        |> Map.put(:ticking?, false)
         |> Map.put(:saved_timer_value, :timer.minutes(10))
       end)
 
@@ -198,8 +198,8 @@ defmodule Test.Core.TimerTest do
       %{pid: pid}
     end
 
-    test "makes timer unpaused", context do
-      %{paused?: false} = Timer.get_status(context.pid)
+    test "makes timer ticking", context do
+      %{ticking?: true} = Timer.get_status(context.pid)
     end
 
     test "starts elixir timer with :saved_timer_value", context do
@@ -219,7 +219,7 @@ defmodule Test.Core.TimerTest do
     end
 
     test "does nothing", context do
-      %{paused?: false} = Timer.get_status(context.pid)
+      %{ticking?: true} = Timer.get_status(context.pid)
     end
   end
 end

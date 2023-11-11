@@ -37,7 +37,6 @@ defmodule SyncedTomatoes.Web.WebSocket.Method do
         do
           {:ok, map_result.(result)}
         end
-        # end
       end
     end
   end

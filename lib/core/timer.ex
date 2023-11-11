@@ -1,6 +1,12 @@
 defmodule SyncedTomatoes.Core.Timer do
   use GenServer
 
+  def start_link(opts) do
+    name = Keyword.get(opts, :name, __MODULE__)
+
+    GenServer.start_link(__MODULE__, opts, name: name)
+  end
+
   @impl true
   def init(opts) do
     work_min = Keyword.fetch!(opts, :work_min)
@@ -16,7 +22,7 @@ defmodule SyncedTomatoes.Core.Timer do
       long_break_min: long_break_min,
       work_intervals_count: work_intervals_count,
 
-      paused?: false,
+      ticking?: true,
       interval_type: :work,
       current_work_interval: 1,
       timer_ref: timer_ref,
@@ -46,7 +52,7 @@ defmodule SyncedTomatoes.Core.Timer do
       end
 
     response = %{
-      paused?: state.paused?,
+      ticking?: state.ticking?,
       interval_type: state.interval_type,
       time_left_ms: time_left_ms,
       current_work_interval: state.current_work_interval,
@@ -56,7 +62,7 @@ defmodule SyncedTomatoes.Core.Timer do
   end
 
   @impl true
-  def handle_cast(:pause, %{paused?: true} = state) do
+  def handle_cast(:pause, %{ticking?: false} = state) do
     {:noreply, state}
   end
   def handle_cast(:pause, %{timer_ref: timer_ref} = state) do
@@ -69,16 +75,16 @@ defmodule SyncedTomatoes.Core.Timer do
           0
       end
 
-    {:noreply, %{state | paused?: true, timer_ref: nil, saved_timer_value: saved_timer_value}}
+    {:noreply, %{state | ticking?: false, timer_ref: nil, saved_timer_value: saved_timer_value}}
   end
 
-  def handle_cast(:continue, %{paused?: false} = state) do
+  def handle_cast(:continue, %{ticking?: true} = state) do
     {:noreply, state}
   end
   def handle_cast(:continue, %{saved_timer_value: saved_timer_value} = state) do
     timer_ref = Process.send_after(self(), :work_finished, saved_timer_value)
 
-    {:noreply, %{state | paused?: false, timer_ref: timer_ref, saved_timer_value: nil}}
+    {:noreply, %{state | ticking?: true, timer_ref: timer_ref, saved_timer_value: nil}}
   end
 
   @impl true
