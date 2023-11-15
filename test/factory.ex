@@ -4,7 +4,7 @@ defmodule SyncedTomatoes.Factory do
   alias SyncedTomatoes.Core.{Settings, Token, User}
 
   def user_factory do
-    %User{login: sequence("login_")}
+    %User{login: sequence("login_"), settings: build(:settings)}
   end
 
   def token_factory do

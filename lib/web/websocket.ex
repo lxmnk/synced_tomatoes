@@ -6,6 +6,8 @@ defmodule SyncedTomatoes.Web.WebSocket do
   alias SyncedTomatoes.Web.WebSocket.MethodDispatcher
   alias SyncedTomatoes.Web.WebSocket.WSRequest
 
+  require Logger
+
   @invalid_credentials_frame {:close, 1008, "Invalid credentials"}
 
   def init(request, _) do
@@ -41,6 +43,16 @@ defmodule SyncedTomatoes.Web.WebSocket do
             id: ws_request.id,
             error: "Method call error",
             reason: inspect_(reason)
+          })
+          {:reply, {:text, response}, state, :hibernate}
+
+        error ->
+          Logger.error("Unhandled method error: #{inspect(error)}")
+
+          response = Jsonrs.encode!(%{
+            id: ws_request.id,
+            error: "Method call error",
+            reason: "Internal error"
           })
           {:reply, {:text, response}, state, :hibernate}
       end

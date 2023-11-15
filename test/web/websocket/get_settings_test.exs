@@ -4,12 +4,6 @@ defmodule Test.Web.WebSocket.GetSettingsTest do
   setup :user
 
   describe "common" do
-    setup context do
-      insert(:settings, user: context.user)
-
-      :ok
-    end
-
     test "returns timer settings", context do
       assert %{
         "id" => _,

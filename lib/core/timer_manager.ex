@@ -35,8 +35,8 @@ defmodule SyncedTomatoes.Core.TimerManager do
       [] ->
         nil
 
-      [timer] ->
-        timer
+      [{pid, _}] ->
+        pid
     end
   end
 

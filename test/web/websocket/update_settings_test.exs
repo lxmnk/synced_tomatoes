@@ -8,8 +8,6 @@ defmodule Test.Web.WebSocket.UpdateSettingsTest do
 
   describe "common" do
     setup context do
-      insert(:settings, user: context.user)
-
       result = call!(context.token, "update_settings", %{
         "workMin" => 24,
         "shortBreakMin" => 4,
