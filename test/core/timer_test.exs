@@ -3,20 +3,17 @@ defmodule Test.Core.TimerTest do
 
   alias SyncedTomatoes.Core.Timer
 
-  setup do
-    %{
-      opts: [
+  describe "start new timer" do
+    setup do
+      opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
-        work_intervals_count: 4
+        work_intervals_count: 4,
+        auto_next: true
       ]
-    }
-  end
 
-  describe "start new timer" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+      {:ok, pid} = GenServer.start_link(Timer, opts)
 
       %{pid: pid}
     end
@@ -45,9 +42,45 @@ defmodule Test.Core.TimerTest do
     end
   end
 
+  describe "pause before short break" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: false
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+
+      send(pid, :work_finished)
+
+      %{pid: pid}
+    end
+
+    test "sets :interval_type to :short_break", context do
+      assert %{interval_type: :short_break} = Timer.get_status(context.pid)
+    end
+
+    test "elixir timer is nil", context do
+      time_left_ms = :timer.minutes(5)
+
+      %{time_left_ms: ^time_left_ms} = Timer.get_status(context.pid)
+    end
+  end
+
   describe "starts short break" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
 
       send(pid, :work_finished)
 
@@ -65,9 +98,48 @@ defmodule Test.Core.TimerTest do
     end
   end
 
+  describe "pause before long break" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: false
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+      :sys.replace_state(pid, fn state ->
+        Map.put(state, :current_work_interval, 4)
+      end)
+
+      send(pid, :work_finished)
+
+      %{pid: pid}
+    end
+
+    test "sets :interval_type to :long_break", context do
+      assert %{interval_type: :long_break} = Timer.get_status(context.pid)
+    end
+
+    test "elixir timer is nil", context do
+      time_left_ms = :timer.minutes(15)
+
+      %{time_left_ms: ^time_left_ms} = Timer.get_status(context.pid)
+    end
+  end
+
   describe "starts long break" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
       :sys.replace_state(pid, fn state ->
         Map.put(state, :current_work_interval, 4)
       end)
@@ -88,9 +160,48 @@ defmodule Test.Core.TimerTest do
     end
   end
 
+  describe "pause after short break" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: false
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+      :sys.replace_state(pid, fn state ->
+        Map.put(state, :interval_type, :short_break)
+      end)
+
+      send(pid, :short_break_finished)
+
+      %{pid: pid}
+    end
+
+    test "sets :interval_type to :work", context do
+      assert %{interval_type: :work} = Timer.get_status(context.pid)
+    end
+
+    test "elixir timer is nil", context do
+      time_left_ms = :timer.minutes(25)
+
+      %{time_left_ms: ^time_left_ms} = Timer.get_status(context.pid)
+    end
+  end
+
   describe "start work after short break" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
       :sys.replace_state(pid, fn state ->
         Map.put(state, :interval_type, :short_break)
       end)
@@ -115,9 +226,48 @@ defmodule Test.Core.TimerTest do
     end
   end
 
+  describe "pause after long break" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: false
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+      :sys.replace_state(pid, fn state ->
+        Map.put(state, :interval_type, :long_break)
+      end)
+
+      send(pid, :long_break_finished)
+
+      %{pid: pid}
+    end
+
+    test "sets :interval_type to :work", context do
+      assert %{interval_type: :work} = Timer.get_status(context.pid)
+    end
+
+    test "elixir timer is nil", context do
+      time_left_ms = :timer.minutes(25)
+
+      %{time_left_ms: ^time_left_ms} = Timer.get_status(context.pid)
+    end
+  end
+
   describe "start work after long break" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
       :sys.replace_state(pid, fn state ->
         Map.put(state, :interval_type, :long_break)
       end)
@@ -143,8 +293,16 @@ defmodule Test.Core.TimerTest do
   end
 
   describe "pause timer" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
 
       Timer.pause(pid)
 
@@ -156,7 +314,7 @@ defmodule Test.Core.TimerTest do
     end
 
     test "saves elixir timer value", context do
-      %{saved_timer_value: time_left_ms} = :sys.get_state(context.pid)
+      %{time_left_ms: time_left_ms} = Timer.get_status(context.pid)
 
       assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
@@ -167,8 +325,16 @@ defmodule Test.Core.TimerTest do
   end
 
   describe "pause already paused timer" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
       :sys.replace_state(pid, fn state ->
         state
         |> Map.put(:ticking?, false)
@@ -185,8 +351,16 @@ defmodule Test.Core.TimerTest do
   end
 
   describe "continue timer" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
       :sys.replace_state(pid, fn state ->
         state
         |> Map.put(:ticking?, false)
@@ -210,8 +384,16 @@ defmodule Test.Core.TimerTest do
   end
 
   describe "continue already running timer" do
-    setup context do
-      {:ok, pid} = GenServer.start_link(Timer, context.opts)
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
 
       Timer.continue(pid)
 

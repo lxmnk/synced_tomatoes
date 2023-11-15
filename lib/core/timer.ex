@@ -13,6 +13,7 @@ defmodule SyncedTomatoes.Core.Timer do
     short_break_min = Keyword.fetch!(opts, :short_break_min)
     long_break_min = Keyword.fetch!(opts, :long_break_min)
     work_intervals_count = Keyword.fetch!(opts, :work_intervals_count)
+    auto_next = Keyword.fetch!(opts, :auto_next)
 
     timer_ref = Process.send_after(self(), :work_finished, :timer.minutes(work_min))
 
@@ -21,6 +22,7 @@ defmodule SyncedTomatoes.Core.Timer do
       short_break_min: short_break_min,
       long_break_min: long_break_min,
       work_intervals_count: work_intervals_count,
+      auto_next: auto_next,
 
       ticking?: true,
       interval_type: :work,
@@ -88,23 +90,29 @@ defmodule SyncedTomatoes.Core.Timer do
   end
 
   @impl true
-  def handle_info(
-    :work_finished,
-    %{
-      current_work_interval: work_intervals_count,
-      work_intervals_count: work_intervals_count,
-      long_break_min: long_break_min
-    } = state
-  )
-  do
-    timer_ref = Process.send_after(self(), :long_break_finished, :timer.minutes(long_break_min))
+  def handle_info(:work_finished, state) do
+    {next_interval_type, next_interval_min} =
+      if state.current_work_interval == state.work_intervals_count do
+        {:long_break, state.long_break_min}
+      else
+        {:short_break, state.short_break_min}
+      end
 
-    {:noreply, %{state | interval_type: :long_break, timer_ref: timer_ref}}
-  end
-  def handle_info(:work_finished, %{short_break_min: short_break_min} = state) do
-    timer_ref = Process.send_after(self(), :short_break_finished, :timer.minutes(short_break_min))
+    if state.auto_next do
+      timer_ref = Process.send_after(
+        self(), next_interval_type, :timer.minutes(next_interval_min)
+      )
 
-    {:noreply, %{state | interval_type: :short_break, timer_ref: timer_ref}}
+      {:noreply, %{state | interval_type: next_interval_type, timer_ref: timer_ref}}
+    else
+      {:noreply, %{
+        state |
+          interval_type: next_interval_type,
+          ticking?: false,
+          timer_ref: nil,
+          saved_timer_value: :timer.minutes(next_interval_min)
+      }}
+    end
   end
 
   @impl true
@@ -112,7 +120,8 @@ defmodule SyncedTomatoes.Core.Timer do
     :short_break_finished,
     %{
       work_min: work_min,
-      current_work_interval: current_work_interval
+      current_work_interval: current_work_interval,
+      auto_next: true
     } = state
   )
   do
@@ -125,11 +134,39 @@ defmodule SyncedTomatoes.Core.Timer do
         current_work_interval: current_work_interval + 1
     }}
   end
+  def handle_info(
+    :short_break_finished,
+    %{
+      work_min: work_min,
+      current_work_interval: current_work_interval,
+      auto_next: false
+    } = state
+  )
+  do
+    {:noreply, %{
+      state |
+        interval_type: :work,
+        ticking?: false,
+        timer_ref: nil,
+        saved_timer_value: :timer.minutes(work_min),
+        current_work_interval: current_work_interval + 1
+    }}
+  end
 
   @impl true
-  def handle_info(:long_break_finished, %{work_min: work_min} = state) do
+  def handle_info(:long_break_finished, %{work_min: work_min, auto_next: true} = state) do
     timer_ref = Process.send_after(self(), :work_finished, :timer.minutes(work_min))
 
     {:noreply, %{state | interval_type: :work, timer_ref: timer_ref, current_work_interval: 1}}
+  end
+  def handle_info(:long_break_finished, %{work_min: work_min, auto_next: false} = state) do
+    {:noreply, %{
+      state |
+        interval_type: :work,
+        ticking?: false,
+        timer_ref: nil,
+        saved_timer_value: :timer.minutes(work_min),
+        current_work_interval: 1
+    }}
   end
 end

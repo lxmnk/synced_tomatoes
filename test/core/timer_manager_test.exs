@@ -11,7 +11,8 @@ defmodule Test.Core.TimerManagerTest do
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
-        work_intervals_count: 4
+        work_intervals_count: 4,
+        auto_next: true
       ],
       user_id: 1
     }
