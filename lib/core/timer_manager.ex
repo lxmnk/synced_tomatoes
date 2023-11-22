@@ -30,13 +30,13 @@ defmodule SyncedTomatoes.Core.TimerManager do
     end
   end
 
-  def get_timer(user_id) do
+  def fetch_timer(user_id) do
     case Registry.lookup(@registry_name, user_id) do
       [] ->
-        nil
+        {:error, :not_found}
 
       [{pid, _}] ->
-        pid
+        {:ok, pid}
     end
   end
 

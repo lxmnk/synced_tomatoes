@@ -340,13 +340,17 @@ defmodule Test.Core.TimerTest do
         |> Map.put(:ticking?, false)
       end)
 
-      Timer.pause(pid)
+      result = Timer.pause(pid)
 
-      %{pid: pid}
+      %{result: result, pid: pid}
+    end
+
+    test "returns error", context do
+      assert {:error, :already_paused} = context.result
     end
 
     test "does nothing", context do
-      %{ticking?: false} = Timer.get_status(context.pid)
+      assert %{ticking?: false} = Timer.get_status(context.pid)
     end
   end
 
@@ -383,7 +387,7 @@ defmodule Test.Core.TimerTest do
     end
   end
 
-  describe "continue already running timer" do
+  describe "continue already ticking timer" do
     setup do
       opts = [
         work_min: 25,
@@ -395,13 +399,17 @@ defmodule Test.Core.TimerTest do
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
 
-      Timer.continue(pid)
+      result = Timer.continue(pid)
 
-      %{pid: pid}
+      %{result: result, pid: pid}
+    end
+
+    test "returns error", context do
+      assert {:error, :already_ticking} = context.result
     end
 
     test "does nothing", context do
-      %{ticking?: true} = Timer.get_status(context.pid)
+      assert %{ticking?: true} = Timer.get_status(context.pid)
     end
   end
 end

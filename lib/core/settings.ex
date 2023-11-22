@@ -17,6 +17,7 @@ defmodule SyncedTomatoes.Core.Settings do
     field :short_break_min, :integer, default: 5
     field :long_break_min, :integer, default: 15
     field :work_intervals_count, :integer, default: 4
+    field :auto_next, :boolean, default: true
 
     timestamps()
   end

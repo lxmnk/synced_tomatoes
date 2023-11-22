@@ -2,6 +2,8 @@ defmodule SyncedTomatoes.Web.WebSocket.MethodDispatcher do
   alias SyncedTomatoes.Web.WebSocket.Methods.{
     GetSettings,
     GetTimer,
+    PauseTimer,
+    StartTimer,
     UpdateSettings
   }
 
@@ -11,6 +13,14 @@ defmodule SyncedTomatoes.Web.WebSocket.MethodDispatcher do
 
   def dispatch("get_timer", context, params) do
     GetTimer.execute(context, params)
+  end
+
+  def dispatch("pause_timer", context, params) do
+    PauseTimer.execute(context, params)
+  end
+
+  def dispatch("start_timer", context, params) do
+    StartTimer.execute(context, params)
   end
 
   def dispatch("update_settings", context, params) do

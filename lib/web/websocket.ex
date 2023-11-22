@@ -34,6 +34,10 @@ defmodule SyncedTomatoes.Web.WebSocket do
          {:ok, ws_request} <- WSRequest.make(payload)
     do
       case MethodDispatcher.dispatch(ws_request.method, state, ws_request.params) do
+        :ok ->
+          response = Jsonrs.encode!(%{id: ws_request.id, result: %{info: "Success"}})
+          {:reply, {:text, response}, state, :hibernate}
+
         {:ok, result} ->
           response = Jsonrs.encode!(%{id: ws_request.id, result: result})
           {:reply, {:text, response}, state, :hibernate}

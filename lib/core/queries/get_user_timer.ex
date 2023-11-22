@@ -3,23 +3,19 @@ defmodule SyncedTomatoes.Core.Queries.GetUserTimer do
   alias SyncedTomatoes.Core.{Timer, TimerManager}
 
   def execute(user_id) do
-    user_id
-    |> TimerManager.get_timer()
-    |> get_status(user_id)
-  end
+    case TimerManager.fetch_timer(user_id) do
+      {:ok, timer} ->
+        {:ok,
+          timer
+          |> Timer.get_status()
+          |> map_status()
+        }
 
-  defp get_status(nil, user_id) do
-    with {:ok, settings} <- GetSettings.execute(user_id) do
-      {:ok, map_settings(settings)}
+      {:error, :not_found} ->
+        with {:ok, settings} <- GetSettings.execute(user_id) do
+          {:ok, map_settings(settings)}
+        end
     end
-  end
-  defp get_status(timer, _) do
-    result =
-      timer
-      |> Timer.get_status()
-      |> map_status()
-
-    {:ok, result}
   end
 
   defp map_settings(settings) do

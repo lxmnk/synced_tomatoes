@@ -22,8 +22,6 @@ defmodule Test.Core.TimerManagerTest do
     assert :ok = TimerManager.start_timer(context.user_id, context.timer_settings)
 
     assert [_, _] = Supervisor.which_children(TimerManager)
-
-    assert TimerManager.get_timer(context.user_id)
   end
 
   describe "with started timer" do
@@ -45,7 +43,7 @@ defmodule Test.Core.TimerManagerTest do
     end
 
     test "gets timer", context do
-      assert TimerManager.get_timer(context.user_id)
+      assert {:ok, _} = TimerManager.fetch_timer(context.user_id)
     end
 
     test "removes timer", context do

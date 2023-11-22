@@ -19,7 +19,10 @@ defmodule Test.Web.WebSocket.UpdateSettingsTest do
     end
 
     test "returns success", context do
-      assert %{"id" => _, "result" => "Settings updated"} = context.result
+      assert %{
+        "id" => _,
+        "result" => "Settings updated"
+      } = context.result
     end
 
     test "updates settings", context do

@@ -37,11 +37,11 @@ defmodule SyncedTomatoes.Core.Timer do
   end
 
   def pause(pid) do
-    GenServer.cast(pid, :pause)
+    GenServer.call(pid, :pause)
   end
 
   def continue(pid) do
-    GenServer.cast(pid, :continue)
+    GenServer.call(pid, :continue)
   end
 
   @impl true
@@ -64,10 +64,10 @@ defmodule SyncedTomatoes.Core.Timer do
   end
 
   @impl true
-  def handle_cast(:pause, %{ticking?: false} = state) do
-    {:noreply, state}
+  def handle_call(:pause, _, %{ticking?: false} = state) do
+    {:reply, {:error, :already_paused}, state}
   end
-  def handle_cast(:pause, %{timer_ref: timer_ref} = state) do
+  def handle_call(:pause, _, %{timer_ref: timer_ref} = state) do
     saved_timer_value =
       case Process.cancel_timer(timer_ref) do
         value when is_integer(value) ->
@@ -77,16 +77,17 @@ defmodule SyncedTomatoes.Core.Timer do
           0
       end
 
-    {:noreply, %{state | ticking?: false, timer_ref: nil, saved_timer_value: saved_timer_value}}
+    {:reply, :ok, %{state | ticking?: false, timer_ref: nil, saved_timer_value: saved_timer_value}}
   end
 
-  def handle_cast(:continue, %{ticking?: true} = state) do
-    {:noreply, state}
+  @impl true
+  def handle_call(:continue, _, %{ticking?: true} = state) do
+    {:reply, {:error, :already_ticking}, state}
   end
-  def handle_cast(:continue, %{saved_timer_value: saved_timer_value} = state) do
+  def handle_call(:continue, _, %{saved_timer_value: saved_timer_value} = state) do
     timer_ref = Process.send_after(self(), :work_finished, saved_timer_value)
 
-    {:noreply, %{state | ticking?: true, timer_ref: timer_ref, saved_timer_value: nil}}
+    {:reply, :ok, %{state | ticking?: true, timer_ref: timer_ref, saved_timer_value: nil}}
   end
 
   @impl true
