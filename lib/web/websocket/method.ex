@@ -1,41 +1,32 @@
 defmodule SyncedTomatoes.Web.WebSocket.Method do
-  @callback execute(context :: map, params :: map) :: {:ok, term} | {:error, term}
-  @callback map_params(params :: map) :: term
-  @callback map_result(result :: map) :: term
-  @optional_callbacks map_params: 1, map_result: 1
+  @callback execute(context :: map, params :: map) :: :ok | {:ok, term} | {:error, term}
+  @callback params_schema() :: struct
+  @callback map_params(params :: map) :: map
+  @callback map_result(result :: map) :: map
+  @optional_callbacks params_schema: 0, map_params: 1, map_result: 1
 
   defmacro __using__(_) do
     quote do
       @behaviour unquote(__MODULE__)
 
+      def params_schema, do: nil
+      def map_params(params), do: params
+      def map_result(result), do: result
+
+      defoverridable params_schema: 0, map_params: 1, map_result: 1
+
       def call(context, payload) do
-        schema =
-          case Code.ensure_compiled(__MODULE__.ParamsSchema) do
-            {:module, _} ->
-              __MODULE__.ParamsSchema
+        with {:ok, params} <- unquote(__MODULE__).validate_params(params_schema(), payload) do
+          case __MODULE__.execute(context, map_params(params)) do
+            :ok ->
+              :ok
 
-            _ ->
-              nil
+            {:ok, result} ->
+              {:ok, map_result(result)}
+
+            error ->
+              error
           end
-
-        map_params =
-          if function_exported?(__MODULE__, :map_params, 1) do
-            fn params -> apply(__MODULE__, :map_params, [params]) end
-          else
-            fn params -> params end
-          end
-
-        map_result =
-          if function_exported?(__MODULE__, :map_result, 1) do
-            fn result -> apply(__MODULE__, :map_result, [result]) end
-          else
-            fn result -> result end
-          end
-
-        with {:ok, params} <- unquote(__MODULE__).validate_params(schema, payload),
-             {:ok, result} <- __MODULE__.execute(context, map_params.(params))
-        do
-          {:ok, map_result.(result)}
         end
       end
     end

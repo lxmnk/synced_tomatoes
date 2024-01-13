@@ -3,10 +3,12 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.GetSettings do
 
   alias SyncedTomatoes.Core.Queries.GetSettings
 
+  @impl true
   def execute(context, _) do
     GetSettings.execute(context.user_id)
   end
 
+  @impl true
   def map_result(result) do
     %{
       "workMin" => result.work_min,

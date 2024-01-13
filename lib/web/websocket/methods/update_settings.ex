@@ -3,7 +3,7 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
 
   alias SyncedTomatoes.Core.Commands.UpdateSettings
 
-  defmodule ParamsSchema do
+  defmodule UpdateSettingsRequest do
     use Construct do
       field :workMin, :integer
       field :shortBreakMin, :integer
@@ -12,12 +12,19 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
     end
   end
 
+  @impl true
+  def params_schema do
+    UpdateSettingsRequest
+  end
+
+  @impl true
   def execute(context, params) do
     with :ok <- UpdateSettings.execute(context.user_id, params) do
       {:ok, "Settings updated"}
     end
   end
 
+  @impl true
   def map_params(params) do
     %{
       "work_min" => params.workMin,

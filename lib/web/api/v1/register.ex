@@ -4,13 +4,19 @@ defmodule SyncedTomatoes.Web.API.V1.Register do
   alias SyncedTomatoes.Core.Commands.CreateUserToken
   alias SyncedTomatoes.Core.Commands.RegisterUser
 
-  defmodule RequestSchema do
+  defmodule RegisterRequest do
     use Construct do
       field :login, :string
     end
   end
 
-  endpoint fn _conn, payload ->
+  @impl true
+  def request_schema do
+    RegisterRequest
+  end
+
+  @impl true
+  def execute(_conn, payload) do
     with {:ok, %{id: user_id}} <- RegisterUser.execute(payload.login),
       {:ok, %{value: token}} <- CreateUserToken.execute(user_id)
     do

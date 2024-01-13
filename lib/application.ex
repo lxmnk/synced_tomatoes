@@ -37,7 +37,7 @@ defmodule SyncedTomatoes.Application do
   defp add_if(spec, true) do
     spec
   end
-  defp add_if(spec, false) do
+  defp add_if(_, false) do
     nil
   end
 end

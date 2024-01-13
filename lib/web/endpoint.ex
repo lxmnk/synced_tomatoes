@@ -3,34 +3,30 @@ defmodule SyncedTomatoes.Web.Endpoint do
 
   alias SyncedTomatoes.Web.API.Responses.{Error, Ok}
 
+  @callback execute(context :: Plug.Conn, payload :: map) :: %Ok{} | %Error{}
+  @callback request_schema() :: struct
+  @optional_callbacks request_schema: 0
+
   defmacro __using__(_opts) do
     quote do
-      import unquote(__MODULE__)
-    end
-  end
+      @behaviour unquote(__MODULE__)
 
-  defmacro endpoint(func) do
-    quote do
       alias SyncedTomatoes.Web.API.Responses.{Error, Ok}
+
+      def request_schema, do: nil
+
+      defoverridable request_schema: 0
 
       def init(opts) do
         opts
       end
 
       def call(conn, _opts) do
-        schema =
-          case Code.ensure_compiled(__MODULE__.RequestSchema) do
-            {:module, _} ->
-              __MODULE__.RequestSchema
-
-            _ ->
-              nil
-          end
-
-        case unquote(__MODULE__).validate_body(schema, conn.body_params) do
+        case unquote(__MODULE__).validate_body(request_schema(), conn.body_params) do
           {:ok, payload} ->
-            result = unquote(func).(conn, payload)
-            cast_result(result, conn)
+            result = __MODULE__.execute(conn, payload)
+
+            unquote(__MODULE__).cast_result(result, conn)
 
           {:error, reason} ->
             resp_body = Jsonrs.encode!(%{"status" => "error", "reason" => reason})

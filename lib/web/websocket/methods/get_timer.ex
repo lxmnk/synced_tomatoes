@@ -3,10 +3,12 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.GetTimer do
 
   alias SyncedTomatoes.Core.Queries.GetUserTimer
 
+  @impl true
   def execute(context, _) do
     GetUserTimer.execute(context.user_id)
   end
 
+  @impl true
   def map_result(result) do
     %{
       "state" => result.state,
