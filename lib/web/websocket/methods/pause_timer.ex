@@ -1,10 +1,11 @@
 defmodule SyncedTomatoes.Web.WebSocket.Methods.PauseTimer do
   use SyncedTomatoes.Web.WebSocket.Method
 
-  alias SyncedTomatoes.Core.Commands.StartUserTimer
+  alias SyncedTomatoes.Core.Commands.PauseTimer
 
+  @impl true
   def execute(context, _) do
-    case StartUserTimer.execute(context.user_id) do
+    case PauseTimer.execute(context.user_id) do
       {:error, :not_found} ->
         {:error, "Timer not started"}
 

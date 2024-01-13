@@ -13,11 +13,11 @@ defmodule Test.Web.WebSocket.GetTimerTest do
         "id" => _,
         "result" => %{
           "state" => "stopped",
-          "interval_type" => "work",
-          "time_left_ms" => ^time_left_ms,
-          "current_work_interval" => 1
+          "intervalType" => "work",
+          "timeLeftMs" => ^time_left_ms,
+          "currentWorkInterval" => 1
         }
-      } = call!(context.token, "get_timer", %{})
+      } = call!(context.token, "getTimer", %{})
     end
   end
 
@@ -32,6 +32,8 @@ defmodule Test.Web.WebSocket.GetTimerTest do
       ]
 
       TimerManager.start_timer(context.user.id, settings)
+
+      :ok
     end
 
     test "returns timer", context do
@@ -39,11 +41,11 @@ defmodule Test.Web.WebSocket.GetTimerTest do
         "id" => _,
         "result" => %{
           "state" => "ticking",
-          "interval_type" => "work",
-          "time_left_ms" => time_left_ms,
-          "current_work_interval" => 1
+          "intervalType" => "work",
+          "timeLeftMs" => time_left_ms,
+          "currentWorkInterval" => 1
         }
-      } = call!(context.token, "get_timer", %{})
+      } = call!(context.token, "getTimer", %{})
 
       assert_in_delta :timer.minutes(25), time_left_ms, 100
     end

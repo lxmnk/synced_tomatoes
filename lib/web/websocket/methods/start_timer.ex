@@ -1,13 +1,13 @@
 defmodule SyncedTomatoes.Web.WebSocket.Methods.StartTimer do
   use SyncedTomatoes.Web.WebSocket.Method
 
-  alias SyncedTomatoes.Core.Queries.StartUserTimer
+  alias SyncedTomatoes.Core.Commands.StartTimer
 
   @impl true
   def execute(context, _) do
-    case StartUserTimer.execute(context.user_id) do
-      {:error, :already_started} ->
-        {:error, "Already started"}
+    case StartTimer.execute(context.user_id) do
+      {:error, :already_ticking} ->
+        {:error, "Already ticking"}
 
       result ->
         result

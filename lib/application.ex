@@ -6,7 +6,7 @@ defmodule SyncedTomatoes.Application do
       [
         SyncedTomatoes.Repos.Postgres,
         cowboy_spec(),
-        add_if(SyncedTomatoes.Core.TimerSupervisor, Mix.env() != :test)
+        add_if(SyncedTomatoes.Core.TimerManager, Mix.env() != :test)
       ]
       |> Enum.reject(fn spec -> is_nil(spec) end)
 

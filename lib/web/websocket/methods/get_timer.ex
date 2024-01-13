@@ -1,11 +1,11 @@
 defmodule SyncedTomatoes.Web.WebSocket.Methods.GetTimer do
   use SyncedTomatoes.Web.WebSocket.Method
 
-  alias SyncedTomatoes.Core.Queries.GetUserTimer
+  alias SyncedTomatoes.Core.Queries.GetTimer
 
   @impl true
   def execute(context, _) do
-    GetUserTimer.execute(context.user_id)
+    GetTimer.execute(context.user_id)
   end
 
   @impl true

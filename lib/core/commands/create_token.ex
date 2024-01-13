@@ -1,4 +1,4 @@
-defmodule SyncedTomatoes.Core.Commands.CreateUserToken do
+defmodule SyncedTomatoes.Core.Commands.CreateToken do
   alias SyncedTomatoes.Core.Token
   alias SyncedTomatoes.Repos.Postgres
 

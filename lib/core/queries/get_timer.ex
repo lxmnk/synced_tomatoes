@@ -1,4 +1,4 @@
-defmodule SyncedTomatoes.Core.Queries.GetUserTimer do
+defmodule SyncedTomatoes.Core.Queries.GetTimer do
   alias SyncedTomatoes.Core.Queries.GetSettings
   alias SyncedTomatoes.Core.{Timer, TimerManager}
 

@@ -1,4 +1,4 @@
-defmodule SyncedTomatoes.Core.Commands.StartUserTimer do
+defmodule SyncedTomatoes.Core.Commands.PauseTimer do
   alias SyncedTomatoes.Core.{Timer, TimerManager}
 
   def execute(user_id) do

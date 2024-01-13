@@ -8,7 +8,7 @@ defmodule Test.Web.WebSocket.UpdateSettingsTest do
 
   describe "common" do
     setup context do
-      result = call!(context.token, "update_settings", %{
+      result = call!(context.token, "updateSettings", %{
         "workMin" => 24,
         "shortBreakMin" => 4,
         "longBreakMin" => 14,
@@ -18,7 +18,7 @@ defmodule Test.Web.WebSocket.UpdateSettingsTest do
       %{user_id: context.user.id, result: result}
     end
 
-    test "returns success", context do
+    test "returns ok", context do
       assert %{
         "id" => _,
         "result" => "Settings updated"

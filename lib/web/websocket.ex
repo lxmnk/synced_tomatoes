@@ -76,6 +76,10 @@ defmodule SyncedTomatoes.Web.WebSocket do
     {:ok, state, :hibernate}
   end
 
+  def terminate(_, _, _) do
+    :ok
+  end
+
   defp inspect_(value) when is_binary(value) do
     value
   end

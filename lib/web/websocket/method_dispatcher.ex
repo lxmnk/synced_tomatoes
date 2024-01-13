@@ -7,23 +7,23 @@ defmodule SyncedTomatoes.Web.WebSocket.MethodDispatcher do
     UpdateSettings
   }
 
-  def dispatch("get_settings", context, params) do
+  def dispatch("getSettings", context, params) do
     GetSettings.call(context, params)
   end
 
-  def dispatch("get_timer", context, params) do
-    GetTimer.execute(context, params)
+  def dispatch("getTimer", context, params) do
+    GetTimer.call(context, params)
   end
 
-  def dispatch("pause_timer", context, params) do
-    PauseTimer.execute(context, params)
+  def dispatch("pauseTimer", context, params) do
+    PauseTimer.call(context, params)
   end
 
-  def dispatch("start_timer", context, params) do
-    StartTimer.execute(context, params)
+  def dispatch("startTimer", context, params) do
+    StartTimer.call(context, params)
   end
 
-  def dispatch("update_settings", context, params) do
+  def dispatch("updateSettings", context, params) do
     UpdateSettings.call(context, params)
   end
 

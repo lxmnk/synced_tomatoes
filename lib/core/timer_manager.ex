@@ -19,8 +19,8 @@ defmodule SyncedTomatoes.Core.TimerManager do
     spec = timer_spec(user_id, timer_settings)
 
     case Supervisor.start_child(__MODULE__, spec) do
-      {:ok, _} ->
-        :ok
+      {:ok, pid} ->
+        {:ok, pid}
 
       {:error, {:already_started, _}} ->
         {:error, :already_started}

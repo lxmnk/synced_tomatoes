@@ -1,18 +1,18 @@
 defmodule Test.Web.WebSocket.StartTimerTest do
   use Test.Cases.WSCase
 
-  alias SyncedTomatoes.Core.TimerManager
+  alias SyncedTomatoes.Core.{Timer, TimerManager}
 
   setup [:user, :timer_manager]
 
   describe "common" do
     setup context do
-      result = call!(context.token, "start_timer", %{})
+      result = call!(context.token, "startTimer", %{})
 
       %{result: result}
     end
 
-    test "return ok", context do
+    test "returns ok", context do
       assert %{
         "id" => _,
         "result" => %{"info" => "Success"}
@@ -24,7 +24,41 @@ defmodule Test.Web.WebSocket.StartTimerTest do
     end
   end
 
-  describe "timer already started" do
+  describe "continue timer" do
+    setup context do
+      settings = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = TimerManager.start_timer(context.user.id, settings)
+      :sys.replace_state(pid, fn state ->
+        state
+        |> Map.put(:ticking?, false)
+        |> Map.put(:saved_timer_value, 1000)
+      end)
+
+      result = call!(context.token, "startTimer", %{})
+
+      %{result: result, pid: pid}
+    end
+
+    test "returns ok", context do
+      assert %{
+        "id" => _,
+        "result" => %{"info" => "Success"}
+      } = context.result
+    end
+
+    test "continues timer", context do
+      %{ticking?: true} = Timer.get_status(context.pid)
+    end
+  end
+
+  describe "timer already ticking" do
     setup context do
       settings = [
         work_min: 25,
@@ -36,16 +70,16 @@ defmodule Test.Web.WebSocket.StartTimerTest do
 
       TimerManager.start_timer(context.user.id, settings)
 
-      result = call!(context.token, "start_timer", %{})
+      result = call!(context.token, "startTimer", %{})
 
       %{result: result}
     end
 
-    test "return error", context do
+    test "returns error", context do
       assert %{
         "id" => _,
         "error" => "Method call error",
-        "reason" => "Already started"
+        "reason" => "Already ticking"
       } = context.result
     end
   end

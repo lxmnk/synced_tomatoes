@@ -13,7 +13,7 @@ defmodule Test.Web.WebSocket.GetSettingsTest do
           "longBreakMin" => 15,
           "workIntervalsCount" => 4
         }
-      } = call!(context.token, "get_settings", %{})
+      } = call!(context.token, "getSettings", %{})
     end
   end
 

@@ -17,12 +17,12 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
 
       TimerManager.start_timer(context.user.id, settings)
 
-      result = call!(context.token, "pause_timer", %{})
+      result = call!(context.token, "pauseTimer", %{})
 
       %{result: result}
     end
 
-    test "return ok", context do
+    test "returns ok", context do
       assert %{
         "id" => _,
         "result" => %{"info" => "Success"}
@@ -32,12 +32,12 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
 
   describe "timer not started" do
     setup context do
-      result = call!(context.token, "pause_timer", %{})
+      result = call!(context.token, "pauseTimer", %{})
 
       %{result: result}
     end
 
-    test "return error", context do
+    test "returns error", context do
       assert %{
         "id" => _,
         "error" => "Method call error",
@@ -56,29 +56,19 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
         auto_next: true
       ]
 
-      TimerManager.start_timer(context.user.id, settings)
-
-      {_, timer_pid, _, _} =
-        TimerManager
-        |> Supervisor.which_children()
-        |> Enum.find(
-          fn
-            {{SyncedTomatoes.Core.Timer, _}, _, _, _} -> true
-            _ -> false
-          end
-        )
-
-      :sys.replace_state(timer_pid, fn state ->
+      {:ok, pid} = TimerManager.start_timer(context.user.id, settings)
+      :sys.replace_state(pid, fn state ->
         state
         |> Map.put(:ticking?, false)
+        |> Map.put(:saved_timer_value, 1000)
       end)
 
-      result = call!(context.token, "pause_timer", %{})
+      result = call!(context.token, "pauseTimer", %{})
 
       %{result: result}
     end
 
-    test "return error", context do
+    test "returns error", context do
       assert %{
         "id" => _,
         "error" => "Method call error",

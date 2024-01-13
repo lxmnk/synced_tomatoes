@@ -18,13 +18,6 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
   end
 
   @impl true
-  def execute(context, params) do
-    with :ok <- UpdateSettings.execute(context.user_id, params) do
-      {:ok, "Settings updated"}
-    end
-  end
-
-  @impl true
   def map_params(params) do
     %{
       "work_min" => params.workMin,
@@ -32,5 +25,12 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
       "long_break_min" => params.longBreakMin,
       "work_intervals_count" => params.workIntervalsCount
     }
+  end
+
+  @impl true
+  def execute(context, params) do
+    with :ok <- UpdateSettings.execute(context.user_id, params) do
+      {:ok, "Settings updated"}
+    end
   end
 end
