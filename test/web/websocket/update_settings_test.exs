@@ -35,6 +35,27 @@ defmodule Test.Web.WebSocket.UpdateSettingsTest do
     end
   end
 
+  describe "negative work_min" do
+    setup context do
+      result = call!(context.token, "updateSettings", %{
+        "workMin" => -1,
+        "shortBreakMin" => 4,
+        "longBreakMin" => 14,
+        "workIntervalsCount" => 3
+      })
+
+      %{user_id: context.user.id, result: result}
+    end
+
+    test "returns error", context do
+      assert %{
+        "id" => _,
+        "error" => "Method call error",
+        "reason" => "work_min must be greater than 0"
+      } = context.result
+    end
+  end
+
   defp user(_) do
     user = insert(:user)
     token = insert(:token, user: user)

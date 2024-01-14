@@ -7,8 +7,16 @@ defmodule SyncedTomatoes.Core.Settings do
 
   @primary_key false
 
-  @all_fields ~w(work_min short_break_min long_break_min work_intervals_count user_id)a
-  @required_fields ~w(user_id)a
+  @required_fields ~w(
+    user_id
+  )a
+  @optional_fields ~w(
+    work_min
+    short_break_min
+    long_break_min
+    work_intervals_count
+  )a
+  @all_fields @required_fields ++ @optional_fields
 
   schema "settings" do
     belongs_to :user, User, primary_key: true
@@ -26,5 +34,9 @@ defmodule SyncedTomatoes.Core.Settings do
     settings
     |> cast(params, @all_fields)
     |> validate_required(@required_fields)
+    |> validate_number(:work_min, greater_than: 0)
+    |> validate_number(:short_break_min, greater_than: 0)
+    |> validate_number(:long_break_min, greater_than: 0)
+    |> validate_number(:work_intervals_count, greater_than: 0)
   end
 end
