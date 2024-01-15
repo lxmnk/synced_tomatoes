@@ -3,7 +3,7 @@ defmodule Test.Web.WebSocket.GetTimerTest do
 
   alias SyncedTomatoes.Core.TimerManager
 
-  setup [:user, :timer_manager]
+  setup :user
 
   describe "timer not started" do
     test "returns default timer", context do
@@ -56,11 +56,5 @@ defmodule Test.Web.WebSocket.GetTimerTest do
     token = insert(:token, user: user)
 
     %{user: user, token: token.value}
-  end
-
-  defp timer_manager(_) do
-    start_supervised!(TimerManager, restart: :temporary)
-
-    :ok
   end
 end

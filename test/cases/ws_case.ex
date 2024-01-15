@@ -8,8 +8,10 @@ defmodule Test.Cases.WSCase do
     quote do
       import Test.Cases.WSCase
       import SyncedTomatoes.Factory
+      import SyncedTomatoes.Mocks.Config, only: [put_env: 2, put_env: 3]
 
       alias SyncedTomatoes.Core.UUID4
+      alias SyncedTomatoes.Repos.Postgres
     end
   end
 
@@ -36,16 +38,27 @@ defmodule Test.Cases.WSCase do
 
       {:ok, _, [{:data, ^ref, data}]} = Mint.WebSocket.stream(conn, message_reply)
 
-      case Mint.WebSocket.decode(websocket, data) do
-        {:ok, _, [{:text, response}]} ->
-          {:ok, response}
+      call_result =
+        case Mint.WebSocket.decode(websocket, data) do
+          {:ok, _, [{:text, response}]} ->
+            {:ok, response}
 
-        {:ok, response, [frame]} ->
-          {:error, frame}
+          {:ok, response, [frame]} ->
+            {:error, frame}
+        end
 
-        {:error, reason} ->
-          {:error, reason}
+      {:ok, websocket, data} = Mint.WebSocket.encode(websocket, :close)
+
+      with {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data),
+           close_response = receive(do: (message -> message)),
+           {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, close_response)
+      do
+        {:ok, websocket, [{:close, 1_000, ""}]} = Mint.WebSocket.decode(websocket, data)
+
+        Mint.HTTP.close(conn)
       end
+
+      call_result
     end
   end
 

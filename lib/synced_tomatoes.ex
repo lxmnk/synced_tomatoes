@@ -1,7 +1,11 @@
 defmodule SyncedTomatoes do
-  @http_port Application.compile_env(:synced_tomatoes, :http_port, 4000)
+  @config Application.compile_env(:synced_tomatoes, :config_impl, SyncedTomatoes.Config)
 
   def http_port do
-    @http_port
+    @config.get(:http_port, 4000)
+  end
+
+  def websocket_cleanup_enabled? do
+    @config.get(:websocket_cleanup_enabled?, true)
   end
 end

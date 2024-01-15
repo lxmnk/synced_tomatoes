@@ -3,7 +3,7 @@ defmodule Test.Web.WebSocket.StartTimerTest do
 
   alias SyncedTomatoes.Core.{Timer, TimerManager}
 
-  setup [:user, :timer_manager]
+  setup :user
 
   describe "common" do
     setup context do
@@ -19,8 +19,8 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       } = context.result
     end
 
-    test "starts new timer" do
-      assert [_, _] = Supervisor.which_children(TimerManager)
+    test "starts new timer", context do
+      assert find_timer(context.user.id)
     end
   end
 
@@ -91,9 +91,14 @@ defmodule Test.Web.WebSocket.StartTimerTest do
     %{user: user, token: token.value}
   end
 
-  defp timer_manager(_) do
-    start_supervised!(TimerManager, restart: :temporary)
-
-    :ok
+  defp find_timer(user_id) do
+    TimerManager
+    |> Supervisor.which_children()
+    |> Enum.find(
+      fn
+        {{Timer, ^user_id}, _, _, _} -> true
+        _ -> false
+      end
+    )
   end
 end

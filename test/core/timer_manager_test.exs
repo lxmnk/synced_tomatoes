@@ -1,11 +1,9 @@
 defmodule Test.Core.TimerManagerTest do
-  use ExUnit.Case
+  use Test.Cases.DBCase
 
   alias SyncedTomatoes.Core.{Timer, TimerManager}
 
   setup do
-    start_supervised!(TimerManager, restart: :temporary)
-
     %{
       timer_settings: [
         work_min: 25,
@@ -14,14 +12,14 @@ defmodule Test.Core.TimerManagerTest do
         work_intervals_count: 4,
         auto_next: true
       ],
-      user_id: 1
+      user_id: insert(:user).id
     }
   end
 
   test "starts timer", context do
     assert {:ok, _} = TimerManager.start_timer(context.user_id, context.timer_settings)
 
-    assert [_, _] = Supervisor.which_children(TimerManager)
+    assert find_timer(context.user_id)
   end
 
   describe "with started timer" do
@@ -49,7 +47,18 @@ defmodule Test.Core.TimerManagerTest do
     test "removes timer", context do
       TimerManager.stop_timer(context.user_id)
 
-      assert [_] = Supervisor.which_children(TimerManager)
+      refute find_timer(context.user_id)
     end
+  end
+
+  defp find_timer(user_id) do
+    TimerManager
+    |> Supervisor.which_children()
+    |> Enum.find(
+      fn
+        {{Timer, ^user_id}, _, _, _} -> true
+        _ -> false
+      end
+    )
   end
 end

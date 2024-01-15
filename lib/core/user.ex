@@ -5,7 +5,7 @@ defmodule SyncedTomatoes.Core.User do
 
   alias SyncedTomatoes.Core.Settings
 
-  @required_attrs ~w(login)a
+  @all_fields ~w(login)a
 
   schema "users" do
     has_one :settings, Settings
@@ -16,7 +16,7 @@ defmodule SyncedTomatoes.Core.User do
 
   def create_changeset(params) do
     %__MODULE__{}
-    |> cast(params, @required_attrs)
+    |> cast(params, @all_fields)
     |> unique_constraint(:login, name: :unique_login)
   end
 end

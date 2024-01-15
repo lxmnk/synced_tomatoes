@@ -3,7 +3,7 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
 
   alias SyncedTomatoes.Core.TimerManager
 
-  setup [:user, :timer_manager]
+  setup :user
 
   describe "common" do
     setup context do
@@ -82,11 +82,5 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
     token = insert(:token, user: user)
 
     %{user: user, token: token.value}
-  end
-
-  defp timer_manager(_) do
-    start_supervised!(TimerManager, restart: :temporary)
-
-    :ok
   end
 end

@@ -2,13 +2,11 @@ defmodule SyncedTomatoes.Application do
   use Application
 
   def start(_type, _args) do
-    children =
-      [
-        SyncedTomatoes.Repos.Postgres,
-        cowboy_spec(),
-        add_if(SyncedTomatoes.Core.TimerManager, Mix.env() != :test)
-      ]
-      |> Enum.reject(fn spec -> is_nil(spec) end)
+    children = [
+      SyncedTomatoes.Repos.Postgres,
+      SyncedTomatoes.Core.TimerManager,
+      cowboy_spec(),
+    ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: SyncedTomatoes.Supervisor)
   end
@@ -32,12 +30,5 @@ defmodule SyncedTomatoes.Application do
         {:_, Plug.Cowboy.Handler, {SyncedTomatoes.Web.API, []}}
       ]}
     ]
-  end
-
-  defp add_if(spec, true) do
-    spec
-  end
-  defp add_if(_, false) do
-    nil
   end
 end

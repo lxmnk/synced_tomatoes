@@ -31,18 +31,17 @@ defmodule SyncedTomatoes.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:construct, "== 3.0.0-rc.0"},
       {:uuid, "~> 1.1"},
-      {:ex_machina, "~> 2.7.0", only: :test},
-      {:mint_web_socket, "~> 1.0", only: :test}
     ]
   end
 
   defp test_deps do
     [
-      {:credo, "~> 1.7"}
+      {:ex_machina, "~> 2.7", only: :test},
+      {:mint_web_socket, "~> 1.0", only: :test},
+      {:mox, "~> 1.0", only: :test},
+      {:mox_env, "~> 1.0", only: :test},
+      {:credo, "~> 1.7", only: [:test], runtime: false}
     ]
-    |> Enum.map(fn {name, version} ->
-      {name, version, only: [:test], runtime: false}
-    end)
   end
 
   defp aliases do

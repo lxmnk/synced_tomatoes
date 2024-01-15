@@ -10,6 +10,9 @@ defmodule Test.Cases.APICase do
 
       import Test.Cases.APICase
       import SyncedTomatoes.Factory
+      import SyncedTomatoes.Mocks.Config, only: [put_env: 2, put_env: 3]
+
+      alias SyncedTomatoes.Repos.Postgres
     end
   end
 
