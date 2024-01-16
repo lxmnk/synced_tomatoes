@@ -1,11 +1,12 @@
 defmodule SyncedTomatoes.Web.WebSocket.Methods.GetSettings do
   use SyncedTomatoes.Web.WebSocket.Method
 
-  alias SyncedTomatoes.Core.Queries.GetSettings
+  alias SyncedTomatoes.Core.Settings
+  alias SyncedTomatoes.Repos.Postgres
 
   @impl true
   def execute(context, _) do
-    GetSettings.execute(context.user_id)
+    {:ok, Postgres.get!(Settings, context.user_id)}
   end
 
   @impl true

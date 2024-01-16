@@ -1,7 +1,7 @@
 defmodule SyncedTomatoes.Factory do
   use ExMachina.Ecto, repo: SyncedTomatoes.Repos.Postgres
 
-  alias SyncedTomatoes.Core.{Settings, Token, User}
+  alias SyncedTomatoes.Core.{Settings, TimerDump, Token, User}
 
   def user_factory do
     %User{login: sequence("login_"), settings: build(:settings)}
@@ -13,5 +13,9 @@ defmodule SyncedTomatoes.Factory do
 
   def settings_factory do
     %Settings{}
+  end
+
+  def timer_dump_factory do
+    %TimerDump{}
   end
 end

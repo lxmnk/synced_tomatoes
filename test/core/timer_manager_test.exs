@@ -5,7 +5,7 @@ defmodule Test.Core.TimerManagerTest do
 
   setup do
     %{
-      timer_settings: [
+      timer_opts: [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
@@ -17,15 +17,15 @@ defmodule Test.Core.TimerManagerTest do
   end
 
   test "starts timer", context do
-    assert {:ok, _} = TimerManager.start_timer(context.user_id, context.timer_settings)
+    assert {:ok, _} = TimerManager.start_timer(context.user_id, context.timer_opts)
 
-    assert find_timer(context.user_id)
+    assert timer_exists?(context.user_id)
   end
 
   describe "with started timer" do
     setup context do
       opts = Keyword.put(
-        context.timer_settings,
+        context.timer_opts,
         :name,
         {:via, Registry, {:timer_registry, context.user_id}}
       )
@@ -47,18 +47,24 @@ defmodule Test.Core.TimerManagerTest do
     test "removes timer", context do
       TimerManager.stop_timer(context.user_id)
 
-      refute find_timer(context.user_id)
+      refute timer_exists?(context.user_id)
     end
   end
 
-  defp find_timer(user_id) do
-    TimerManager
-    |> Supervisor.which_children()
-    |> Enum.find(
-      fn
-        {{Timer, ^user_id}, _, _, _} -> true
-        _ -> false
-      end
-    )
+  defp timer_exists?(user_id) do
+    timer =
+      TimerManager
+      |> Supervisor.which_children()
+      |> Enum.find(
+        fn
+          {{Timer, ^user_id}, _, _, _} -> true
+          _ -> false
+        end
+      )
+
+    case timer do
+      nil -> false
+      _ -> true
+    end
   end
 end

@@ -1,6 +1,6 @@
 defmodule SyncedTomatoes.Core.Queries.GetTimer do
-  alias SyncedTomatoes.Core.Queries.GetSettings
-  alias SyncedTomatoes.Core.{Timer, TimerManager}
+  alias SyncedTomatoes.Core.{Settings, Timer, TimerManager}
+  alias SyncedTomatoes.Repos.Postgres
 
   def execute(user_id) do
     case TimerManager.fetch_timer(user_id) do
@@ -12,9 +12,8 @@ defmodule SyncedTomatoes.Core.Queries.GetTimer do
         }
 
       {:error, :not_found} ->
-        with {:ok, settings} <- GetSettings.execute(user_id) do
-          {:ok, map_settings(settings)}
-        end
+        settings = Postgres.get!(Settings, user_id)
+        {:ok, map_settings(settings)}
     end
   end
 

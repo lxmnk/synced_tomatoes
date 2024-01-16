@@ -15,8 +15,8 @@ defmodule SyncedTomatoes.Core.TimerManager do
     Supervisor.init([registry_spec], strategy: :one_for_one)
   end
 
-  def start_timer(user_id, timer_settings) do
-    spec = timer_spec(user_id, timer_settings)
+  def start_timer(user_id, timer_opts) do
+    spec = timer_spec(user_id, timer_opts)
 
     case Supervisor.start_child(__MODULE__, spec) do
       {:ok, pid} ->
@@ -54,8 +54,8 @@ defmodule SyncedTomatoes.Core.TimerManager do
     {:via, Registry, {@registry_name, user_id}}
   end
 
-  defp timer_spec(user_id, timer_settings) do
-    opts = Keyword.put(timer_settings, :name, timer_via_tuple(user_id))
+  defp timer_spec(user_id, timer_opts) do
+    opts = Keyword.put(timer_opts, :name, timer_via_tuple(user_id))
 
     %{
       id: timer_id(user_id),

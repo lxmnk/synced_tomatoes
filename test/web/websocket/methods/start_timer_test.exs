@@ -20,7 +20,7 @@ defmodule Test.Web.WebSocket.StartTimerTest do
     end
 
     test "starts new timer", context do
-      assert find_timer(context.user.id)
+      assert {:ok, _ } = TimerManager.fetch_timer(context.user.id)
     end
   end
 
@@ -35,11 +35,7 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       ]
 
       {:ok, pid} = TimerManager.start_timer(context.user.id, settings)
-      :sys.replace_state(pid, fn state ->
-        state
-        |> Map.put(:ticking?, false)
-        |> Map.put(:saved_timer_value, 1000)
-      end)
+      Timer.pause(pid)
 
       result = call!(context.token, "startTimer", %{})
 
@@ -55,6 +51,40 @@ defmodule Test.Web.WebSocket.StartTimerTest do
 
     test "continues timer", context do
       %{ticking?: true} = Timer.get_status(context.pid)
+    end
+  end
+
+  describe "start timer when timer dump exists" do
+    setup context do
+      insert(:timer_dump,
+        interval_type: "long_break",
+        current_work_interval: 2,
+        time_left_ms: :timer.minutes(8),
+        user_id: context.user.id
+      )
+
+      result = call!(context.token, "startTimer", %{})
+
+      %{result: result}
+    end
+
+    test "returns ok", context do
+      assert %{
+        "id" => _,
+        "result" => %{"info" => "Success"}
+      } = context.result
+    end
+
+    test "starts new timer from dump", context do
+      assert {:ok, pid} = TimerManager.fetch_timer(context.user.id)
+
+      assert %{
+        interval_type: "long_break",
+        current_work_interval: 2,
+        time_left_ms: time_left_ms
+      } = Timer.get_status(pid)
+
+      assert_in_delta :timer.minutes(8), time_left_ms, 100
     end
   end
 
@@ -89,16 +119,5 @@ defmodule Test.Web.WebSocket.StartTimerTest do
     token = insert(:token, user: user)
 
     %{user: user, token: token.value}
-  end
-
-  defp find_timer(user_id) do
-    TimerManager
-    |> Supervisor.which_children()
-    |> Enum.find(
-      fn
-        {{Timer, ^user_id}, _, _, _} -> true
-        _ -> false
-      end
-    )
   end
 end

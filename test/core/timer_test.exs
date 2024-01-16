@@ -42,6 +42,48 @@ defmodule Test.Core.TimerTest do
     end
   end
 
+  describe "start new timer with overriden status" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true,
+        interval_type: :long_break,
+        current_work_interval: 2,
+        time_left_ms: :timer.minutes(15)
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+
+      %{pid: pid}
+    end
+
+    test "saves init opts", context do
+      assert %{
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4
+      } = :sys.get_state(context.pid)
+    end
+
+    test "sets passed :interval_type", context do
+      assert %{interval_type: :long_break} = Timer.get_status(context.pid)
+    end
+
+    test "sets passed :current_work_interval", context do
+      assert %{current_work_interval: 2} = Timer.get_status(context.pid)
+    end
+
+    test "starts elixir timer with passed :time_left_ms", context do
+      %{time_left_ms: time_left_ms} = Timer.get_status(context.pid)
+
+      assert_in_delta :timer.minutes(15), time_left_ms, 100
+    end
+  end
+
   describe "pause before short break" do
     setup do
       opts = [

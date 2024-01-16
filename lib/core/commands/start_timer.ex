@@ -1,6 +1,6 @@
 defmodule SyncedTomatoes.Core.Commands.StartTimer do
-  alias SyncedTomatoes.Core.Queries.GetSettings
-  alias SyncedTomatoes.Core.{Timer, TimerManager}
+  alias SyncedTomatoes.Core.{Settings, Timer, TimerDump, TimerManager}
+  alias SyncedTomatoes.Repos.Postgres
 
   def execute(user_id) do
     case TimerManager.fetch_timer(user_id) do
@@ -13,22 +13,39 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
   end
 
   def start_timer(user_id) do
-    with {:ok, settings} <- GetSettings.execute(user_id) do
-      timer_settings = [
-        work_min: settings.work_min,
-        short_break_min: settings.short_break_min,
-        long_break_min: settings.long_break_min,
-        work_intervals_count: settings.work_intervals_count,
-        auto_next: settings.auto_next,
-      ]
+    settings = Postgres.get!(Settings, user_id)
+    timer_dump = Postgres.get(TimerDump, user_id)
 
-      case TimerManager.start_timer(user_id, timer_settings) do
-        {:ok, _} ->
-          :ok
+    timer_opts = [
+      work_min: settings.work_min,
+      short_break_min: settings.short_break_min,
+      long_break_min: settings.long_break_min,
+      work_intervals_count: settings.work_intervals_count,
+      auto_next: settings.auto_next,
+    ]
 
-        error ->
-          error
-      end
+    timer_opts = maybe_add_timer_dump(timer_opts, timer_dump)
+
+    case TimerManager.start_timer(user_id, timer_opts) do
+      {:ok, _} ->
+        :ok
+
+      error ->
+        error
     end
+  end
+
+  defp maybe_add_timer_dump(timer_opts, nil) do
+    timer_opts
+  end
+  defp maybe_add_timer_dump(timer_opts, %TimerDump{} = dump) do
+    Keyword.merge(
+      timer_opts,
+      [
+        interval_type: dump.interval_type,
+        current_work_interval: dump.current_work_interval,
+        time_left_ms: dump.time_left_ms
+      ]
+    )
   end
 end

@@ -1,7 +1,7 @@
 defmodule Test.Web.WebSocket.PauseTimerTest do
   use Test.Cases.WSCase
 
-  alias SyncedTomatoes.Core.TimerManager
+  alias SyncedTomatoes.Core.{Timer, TimerManager}
 
   setup :user
 
@@ -57,11 +57,7 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
       ]
 
       {:ok, pid} = TimerManager.start_timer(context.user.id, settings)
-      :sys.replace_state(pid, fn state ->
-        state
-        |> Map.put(:ticking?, false)
-        |> Map.put(:saved_timer_value, 1000)
-      end)
+      Timer.pause(pid)
 
       result = call!(context.token, "pauseTimer", %{})
 

@@ -15,7 +15,13 @@ defmodule SyncedTomatoes.Core.Timer do
     work_intervals_count = Keyword.fetch!(opts, :work_intervals_count)
     auto_next = Keyword.fetch!(opts, :auto_next)
 
-    timer_ref = Process.send_after(self(), :work_finished, :timer.minutes(work_min))
+    time_left_ms = Keyword.get(opts, :time_left_ms)
+    interval_type = Keyword.get(opts, :interval_type, :work)
+    current_work_interval = Keyword.get(opts, :current_work_interval, 1)
+
+    timer_ref = Process.send_after(
+      self(), :work_finished, time_left_ms || :timer.minutes(work_min)
+    )
 
     {:ok, %{
       work_min: work_min,
@@ -25,8 +31,8 @@ defmodule SyncedTomatoes.Core.Timer do
       auto_next: auto_next,
 
       ticking?: true,
-      interval_type: :work,
-      current_work_interval: 1,
+      interval_type: interval_type,
+      current_work_interval: current_work_interval,
       timer_ref: timer_ref,
       saved_timer_value: nil
     }}
