@@ -31,7 +31,5 @@ defmodule SyncedTomatoes.Core.TimerDump do
     dump
     |> cast(params, @all_fields)
     |> validate_required(@required_fields)
-    |> validate_number(:current_work_interval, greater_than: 0)
-    |> validate_number(:time_left_ms, greater_than_or_equal_to: 0)
   end
 end

@@ -47,7 +47,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
           response = Jsonrs.encode!(%{
             id: ws_request.id,
             error: "Method call error",
-            reason: inspect_(reason)
+            reason: reason
           })
           {:reply, {:text, response}, state, :hibernate}
 
@@ -66,7 +66,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
         response = Jsonrs.encode!(%{
           id: nil,
           error: "Request validation error",
-          reason: inspect_(reason)
+          reason: reason
         })
 
         {:reply, {:text, response}, state, :hibernate}
@@ -87,12 +87,5 @@ defmodule SyncedTomatoes.Web.WebSocket do
   end
   def terminate(_, _, %{}) do
     :ok
-  end
-
-  defp inspect_(value) when is_binary(value) do
-    value
-  end
-  defp inspect_(value) do
-    inspect(value)
   end
 end

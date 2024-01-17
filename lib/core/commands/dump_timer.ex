@@ -8,8 +8,7 @@ defmodule SyncedTomatoes.Core.Commands.DumpTimer do
         params =
           timer
           |> Timer.get_status()
-          |> Map.delete(:ticking?)
-          |> Map.update!(:interval_type, &(Atom.to_string(&1)))
+          |> map_status()
 
         %TimerDump{user_id: user_id}
         |> TimerDump.changeset(params)
@@ -18,5 +17,13 @@ defmodule SyncedTomatoes.Core.Commands.DumpTimer do
       {:error, :not_found} ->
         :ok
     end
+  end
+
+  defp map_status(status) do
+    %{
+      interval_type: Atom.to_string(status.interval_type),
+      current_work_interval: status.current_work_interval,
+      time_left_ms: status.time_left_ms
+    }
   end
 end

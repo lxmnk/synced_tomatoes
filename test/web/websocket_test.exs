@@ -33,7 +33,7 @@ defmodule Test.Web.WebSocketTest do
       assert %{
         "id" => nil,
         "error" => "Request validation error",
-        "reason" => "%{id: :missing}"
+        "reason" => %{"id" => "missing"}
       } = Jsonrs.decode!(response)
     end
   end

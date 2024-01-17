@@ -2,13 +2,14 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
   use SyncedTomatoes.Web.WebSocket.Method
 
   alias SyncedTomatoes.Core.Commands.UpdateSettings
+  alias SyncedTomatoes.Core.Types.PositiveInteger
 
   defmodule UpdateSettingsRequest do
     use Construct do
-      field :workMin, :integer
-      field :shortBreakMin, :integer
-      field :longBreakMin, :integer
-      field :workIntervalsCount, :integer
+      field :workMin, PositiveInteger
+      field :shortBreakMin, PositiveInteger
+      field :longBreakMin, PositiveInteger
+      field :workIntervalsCount, PositiveInteger
     end
   end
 
@@ -20,10 +21,10 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.UpdateSettings do
   @impl true
   def map_params(params) do
     %{
-      "work_min" => params.workMin,
-      "short_break_min" => params.shortBreakMin,
-      "long_break_min" => params.longBreakMin,
-      "work_intervals_count" => params.workIntervalsCount
+      work_min: params.workMin,
+      short_break_min: params.shortBreakMin,
+      long_break_min: params.longBreakMin,
+      work_intervals_count: params.workIntervalsCount
     }
   end
 

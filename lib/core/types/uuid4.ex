@@ -1,4 +1,4 @@
-defmodule SyncedTomatoes.Core.UUID4 do
+defmodule SyncedTomatoes.Core.Types.UUID4 do
   defdelegate generate, to: UUID, as: :uuid4
   defdelegate to_string!(uuid), to: UUID, as: :binary_to_string!
   defdelegate from_string!(string), to: UUID, as: :string_to_binary!

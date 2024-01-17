@@ -2,7 +2,7 @@ defmodule Test.Cases.WSCase do
   use ExUnit.CaseTemplate
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias SyncedTomatoes.Core.UUID4
+  alias SyncedTomatoes.Core.Types.UUID4
 
   using do
     quote do
@@ -10,7 +10,7 @@ defmodule Test.Cases.WSCase do
       import SyncedTomatoes.Factory
       import SyncedTomatoes.Mocks.Config, only: [put_env: 2, put_env: 3]
 
-      alias SyncedTomatoes.Core.UUID4
+      alias SyncedTomatoes.Core.Types.UUID4
       alias SyncedTomatoes.Repos.Postgres
     end
   end

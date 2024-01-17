@@ -1,5 +1,5 @@
 defmodule SyncedTomatoes.Core.Commands.UpdateSettings do
-  alias SyncedTomatoes.Core.{EctoHelpers, Settings}
+  alias SyncedTomatoes.Core.Settings
   alias SyncedTomatoes.Repos.Postgres
 
   require Logger
@@ -13,9 +13,6 @@ defmodule SyncedTomatoes.Core.Commands.UpdateSettings do
     case result do
       {:ok, _} ->
         :ok
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, EctoHelpers.build_reason(changeset)}
 
       {:error, reason} ->
         Logger.error("#{__ENV__.function} failed with: #{inspect(reason)}")

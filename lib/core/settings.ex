@@ -34,9 +34,5 @@ defmodule SyncedTomatoes.Core.Settings do
     settings
     |> cast(params, @all_fields)
     |> validate_required(@required_fields)
-    |> validate_number(:work_min, greater_than: 0)
-    |> validate_number(:short_break_min, greater_than: 0)
-    |> validate_number(:long_break_min, greater_than: 0)
-    |> validate_number(:work_intervals_count, greater_than: 0)
   end
 end

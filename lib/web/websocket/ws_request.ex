@@ -1,5 +1,5 @@
 defmodule SyncedTomatoes.Web.WebSocket.WSRequest do
-  alias SyncedTomatoes.Core.UUID4
+  alias SyncedTomatoes.Core.Types.UUID4
 
   use Construct do
     field :id, UUID4

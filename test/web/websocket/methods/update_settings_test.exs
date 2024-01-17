@@ -51,7 +51,7 @@ defmodule Test.Web.WebSocket.UpdateSettingsTest do
       assert %{
         "id" => _,
         "error" => "Method call error",
-        "reason" => "work_min must be greater than 0"
+        "reason" => %{"workMin" => "not_a_positive_integer"}
       } = context.result
     end
   end

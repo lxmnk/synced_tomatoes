@@ -50,6 +50,10 @@ defmodule SyncedTomatoes.Core.Timer do
     GenServer.call(pid, :continue)
   end
 
+  def sync(pid, sync_data) do
+    GenServer.call(pid, {:sync, sync_data})
+  end
+
   @impl true
   def handle_call(:status, _, state) do
     time_left_ms =
@@ -94,6 +98,19 @@ defmodule SyncedTomatoes.Core.Timer do
     timer_ref = Process.send_after(self(), :work_finished, saved_timer_value)
 
     {:reply, :ok, %{state | ticking?: true, timer_ref: timer_ref, saved_timer_value: nil}}
+  end
+
+  @impl true
+  def handle_call({:sync, _}, _, %{ticking?: true} = state) do
+    {:reply, {:error, :timer_ticking}, state}
+  end
+  def handle_call({:sync, sync_data}, _, state) do
+    {:reply, :ok, %{
+      state |
+        interval_type: sync_data.interval_type,
+        current_work_interval: sync_data.current_work_interval,
+        saved_timer_value: sync_data.time_left_ms
+    }}
   end
 
   @impl true
