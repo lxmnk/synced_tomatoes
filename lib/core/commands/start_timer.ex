@@ -24,7 +24,7 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
       auto_next: settings.auto_next,
     ]
 
-    timer_opts = maybe_add_timer_dump(timer_opts, timer_dump)
+    timer_opts = maybe_load_timer_dump(timer_opts, timer_dump)
 
     case TimerManager.start_timer(user_id, timer_opts) do
       {:ok, _} ->
@@ -35,10 +35,10 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
     end
   end
 
-  defp maybe_add_timer_dump(timer_opts, nil) do
+  defp maybe_load_timer_dump(timer_opts, nil) do
     timer_opts
   end
-  defp maybe_add_timer_dump(timer_opts, %TimerDump{} = dump) do
+  defp maybe_load_timer_dump(timer_opts, %TimerDump{} = dump) do
     Keyword.merge(
       timer_opts,
       [

@@ -12,15 +12,18 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       %{result: result}
     end
 
-    test "returns ok", context do
+    test "returns started timer status", context do
       assert %{
         "id" => _,
-        "result" => %{"info" => "Success"}
+        "result" => %{
+          "current_work_interval" => 1,
+          "interval_type" => "work",
+          "state" => "ticking",
+          "time_left_ms" => time_left_ms
+        }
       } = context.result
-    end
 
-    test "starts new timer", context do
-      assert {:ok, _ } = TimerManager.fetch_timer(context.user.id)
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
   end
 
@@ -42,15 +45,18 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       %{result: result, pid: pid}
     end
 
-    test "returns ok", context do
+    test "returns continued timer status", context do
       assert %{
         "id" => _,
-        "result" => %{"info" => "Success"}
+        "result" => %{
+          "current_work_interval" => 1,
+          "interval_type" => "work",
+          "state" => "ticking",
+          "time_left_ms" => time_left_ms
+        }
       } = context.result
-    end
 
-    test "continues timer", context do
-      %{ticking?: true} = Timer.get_status(context.pid)
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
   end
 
@@ -68,21 +74,16 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       %{result: result}
     end
 
-    test "returns ok", context do
+    test "returns started timer status", context do
       assert %{
         "id" => _,
-        "result" => %{"info" => "Success"}
+        "result" => %{
+          "current_work_interval" => 2,
+          "interval_type" => "long_break",
+          "state" => "ticking",
+          "time_left_ms" => time_left_ms
+        }
       } = context.result
-    end
-
-    test "starts new timer from dump", context do
-      assert {:ok, pid} = TimerManager.fetch_timer(context.user.id)
-
-      assert %{
-        interval_type: "long_break",
-        current_work_interval: 2,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(pid)
 
       assert_in_delta :timer.minutes(8), time_left_ms, 100
     end

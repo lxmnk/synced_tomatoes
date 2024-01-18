@@ -2,6 +2,7 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.SyncTimer do
   use SyncedTomatoes.Web.WebSocket.Method
 
   alias SyncedTomatoes.Core.Commands.SyncTimer
+  alias SyncedTomatoes.Core.Queries.GetTimer
   alias SyncedTomatoes.Core.Types.PositiveInteger
 
   defmodule SyncTimerRequest do
@@ -36,14 +37,17 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.SyncTimer do
   @impl true
   def execute(context, sync_data) do
     case SyncTimer.execute(context.user_id, sync_data) do
+      :ok ->
+        GetTimer.execute(context.user_id)
+
       {:error, :not_found} ->
         {:error, "Timer not started"}
 
       {:error, :timer_ticking} ->
         {:error, "Can't sync ticking timer"}
 
-      result ->
-        result
+      error ->
+        error
     end
   end
 end

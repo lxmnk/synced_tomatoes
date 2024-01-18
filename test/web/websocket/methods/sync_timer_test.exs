@@ -28,19 +28,16 @@ defmodule Test.Web.WebSocket.SyncTimerTest do
       %{result: result, timer_pid: pid}
     end
 
-    test "returns ok", context do
+    test "returns synced timer status", context do
       assert %{
         "id" => _,
-        "result" => %{"info" => "Success"}
+        "result" => %{
+          "current_work_interval" => 2,
+          "interval_type" => "long_break",
+          "state" => "paused",
+          "time_left_ms" => time_left_ms
+        }
       } = context.result
-    end
-
-    test "syncs timer", context do
-      assert %{
-        interval_type: "long_break",
-        current_work_interval: 2,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.timer_pid)
 
       assert_in_delta :timer.minutes(8), time_left_ms, 100
     end

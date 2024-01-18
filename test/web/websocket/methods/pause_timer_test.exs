@@ -22,11 +22,18 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
       %{result: result}
     end
 
-    test "returns ok", context do
+    test "returns paused timer status", context do
       assert %{
         "id" => _,
-        "result" => %{"info" => "Success"}
+        "result" => %{
+          "current_work_interval" => 1,
+          "interval_type" => "work",
+          "state" => "paused",
+          "time_left_ms" => time_left_ms
+        }
       } = context.result
+
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
   end
 
