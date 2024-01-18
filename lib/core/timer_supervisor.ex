@@ -1,4 +1,4 @@
-defmodule SyncedTomatoes.Core.TimerManager do
+defmodule SyncedTomatoes.Core.TimerSupervisor do
   use Supervisor
 
   alias SyncedTomatoes.Core.Timer

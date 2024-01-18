@@ -4,7 +4,7 @@ defmodule SyncedTomatoes.Application do
   def start(_type, _args) do
     children = [
       SyncedTomatoes.Repos.Postgres,
-      SyncedTomatoes.Core.TimerManager,
+      SyncedTomatoes.Core.TimerSupervisor,
       cowboy_spec(),
     ]
 

@@ -3,7 +3,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
 
   alias Plug.Conn.Query
   alias SyncedTomatoes.Core.Commands.{AuthenticateUser, DumpTimer}
-  alias SyncedTomatoes.Core.TimerManager
+  alias SyncedTomatoes.Core.TimerSupervisor
   alias SyncedTomatoes.Web.WebSocket.MethodDispatcher
   alias SyncedTomatoes.Web.WebSocket.WSRequest
 
@@ -80,7 +80,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
   def terminate(_, _, %{user_id: user_id}) do
     if SyncedTomatoes.websocket_cleanup_enabled?() do
       DumpTimer.execute(user_id)
-      TimerManager.stop_timer(user_id)
+      TimerSupervisor.stop_timer(user_id)
     end
 
     :ok

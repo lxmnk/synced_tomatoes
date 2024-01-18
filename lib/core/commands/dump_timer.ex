@@ -1,9 +1,9 @@
 defmodule SyncedTomatoes.Core.Commands.DumpTimer do
-  alias SyncedTomatoes.Core.{Timer, TimerDump, TimerManager}
+  alias SyncedTomatoes.Core.{Timer, TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Repos.Postgres
 
   def execute(user_id) do
-    case TimerManager.fetch_timer(user_id) do
+    case TimerSupervisor.fetch_timer(user_id) do
       {:ok, timer} ->
         params =
           timer

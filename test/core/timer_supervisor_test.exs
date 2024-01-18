@@ -1,7 +1,7 @@
-defmodule Test.Core.TimerManagerTest do
+defmodule Test.Core.TimerSupervisorTest do
   use Test.Cases.DBCase
 
-  alias SyncedTomatoes.Core.{Timer, TimerManager}
+  alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
 
   setup do
     %{
@@ -17,7 +17,7 @@ defmodule Test.Core.TimerManagerTest do
   end
 
   test "starts timer", context do
-    assert {:ok, _} = TimerManager.start_timer(context.user_id, context.timer_opts)
+    assert {:ok, _} = TimerSupervisor.start_timer(context.user_id, context.timer_opts)
 
     assert timer_exists?(context.user_id)
   end
@@ -35,17 +35,17 @@ defmodule Test.Core.TimerManagerTest do
         start: {Timer, :start_link, [opts]}
       }
 
-      {:ok, _} = Supervisor.start_child(TimerManager, spec)
+      {:ok, _} = Supervisor.start_child(TimerSupervisor, spec)
 
       :ok
     end
 
     test "gets timer", context do
-      assert {:ok, _} = TimerManager.fetch_timer(context.user_id)
+      assert {:ok, _} = TimerSupervisor.fetch_timer(context.user_id)
     end
 
     test "removes timer", context do
-      TimerManager.stop_timer(context.user_id)
+      TimerSupervisor.stop_timer(context.user_id)
 
       refute timer_exists?(context.user_id)
     end
@@ -53,7 +53,7 @@ defmodule Test.Core.TimerManagerTest do
 
   defp timer_exists?(user_id) do
     timer =
-      TimerManager
+      TimerSupervisor
       |> Supervisor.which_children()
       |> Enum.find(
         fn

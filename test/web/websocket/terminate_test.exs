@@ -1,7 +1,7 @@
 defmodule Test.Web.WebSocket.TerminateTest do
   use Test.Cases.DBCase
 
-  alias SyncedTomatoes.Core.{TimerDump, TimerManager}
+  alias SyncedTomatoes.Core.{TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Web.WebSocket
 
   describe "common" do
@@ -17,7 +17,7 @@ defmodule Test.Web.WebSocket.TerminateTest do
         work_intervals_count: 4,
         auto_next: true
       ]
-      {:ok, pid} = TimerManager.start_timer(user.id, settings)
+      {:ok, pid} = TimerSupervisor.start_timer(user.id, settings)
 
       result = WebSocket.terminate(:unused, :unused, %{user_id: user.id})
 

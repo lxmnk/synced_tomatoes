@@ -1,9 +1,9 @@
 defmodule SyncedTomatoes.Core.Commands.StartTimer do
-  alias SyncedTomatoes.Core.{Settings, Timer, TimerDump, TimerManager}
+  alias SyncedTomatoes.Core.{Settings, Timer, TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Repos.Postgres
 
   def execute(user_id) do
-    case TimerManager.fetch_timer(user_id) do
+    case TimerSupervisor.fetch_timer(user_id) do
       {:ok, timer} ->
         Timer.continue(timer)
 
@@ -26,7 +26,7 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
 
     timer_opts = maybe_load_timer_dump(timer_opts, timer_dump)
 
-    case TimerManager.start_timer(user_id, timer_opts) do
+    case TimerSupervisor.start_timer(user_id, timer_opts) do
       {:ok, _} ->
         :ok
 

@@ -1,7 +1,7 @@
 defmodule Test.Web.WebSocket.StartTimerTest do
   use Test.Cases.WSCase
 
-  alias SyncedTomatoes.Core.{Timer, TimerManager}
+  alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
 
   setup :user
 
@@ -37,7 +37,7 @@ defmodule Test.Web.WebSocket.StartTimerTest do
         auto_next: true
       ]
 
-      {:ok, pid} = TimerManager.start_timer(context.user.id, settings)
+      {:ok, pid} = TimerSupervisor.start_timer(context.user.id, settings)
       Timer.pause(pid)
 
       result = call!(context.token, "startTimer", %{})
@@ -99,7 +99,7 @@ defmodule Test.Web.WebSocket.StartTimerTest do
         auto_next: true
       ]
 
-      TimerManager.start_timer(context.user.id, settings)
+      TimerSupervisor.start_timer(context.user.id, settings)
 
       result = call!(context.token, "startTimer", %{})
 
