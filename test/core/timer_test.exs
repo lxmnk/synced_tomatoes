@@ -33,14 +33,14 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :work,
         current_work_interval: 1,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(25), time_left_ms, 100
+      assert_in_delta :timer.minutes(25), Process.read_timer(timer_ref), 100
     end
   end
 
-  describe "start new timer with overriden interval_type and current_work_interval" do
+  describe "start new timer with overriden interval " do
     setup do
       opts = [
         work_min: 25,
@@ -61,14 +61,14 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :long_break,
         current_work_interval: 2,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(15), time_left_ms, 100
+      assert_in_delta :timer.minutes(15), Process.read_timer(timer_ref), 100
     end
   end
 
-  describe "start new timer with overriden time_left_ms" do
+  describe "start new timer with overriden time left" do
     setup do
       opts = [
         work_min: 25,
@@ -88,10 +88,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :work,
         current_work_interval: 1,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(5), time_left_ms, 100
+      assert_in_delta :timer.minutes(5), Process.read_timer(timer_ref), 100
     end
   end
 
@@ -119,8 +119,8 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :short_break,
         current_work_interval: 1,
-        time_left_ms: ^time_left_ms
-      } = Timer.get_status(context.pid)
+        saved_timer_value: ^time_left_ms
+      } = :sys.get_state(context.pid)
     end
 
     test "notifies passed pid" do
@@ -150,10 +150,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :short_break,
         current_work_interval: 1,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(5), time_left_ms, 100
+      assert_in_delta :timer.minutes(5), Process.read_timer(timer_ref), 100
     end
 
     test "notifies passed pid" do
@@ -188,8 +188,8 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :long_break,
         current_work_interval: 4,
-        time_left_ms: ^time_left_ms
-      } = Timer.get_status(context.pid)
+        saved_timer_value: ^time_left_ms
+      } = :sys.get_state(context.pid)
     end
 
     test "notifies passed pid" do
@@ -222,10 +222,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :long_break,
         current_work_interval: 4,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(15), time_left_ms, 100
+      assert_in_delta :timer.minutes(15), Process.read_timer(timer_ref), 100
     end
 
     test "notifies passed pid" do
@@ -260,8 +260,8 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :work,
         current_work_interval: 2,
-        time_left_ms: ^time_left_ms
-      } = Timer.get_status(context.pid)
+        saved_timer_value: ^time_left_ms
+      } = :sys.get_state(context.pid)
     end
 
     test "notifies passed pid" do
@@ -294,10 +294,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :work,
         current_work_interval: 2,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(25), time_left_ms, 100
+      assert_in_delta :timer.minutes(25), Process.read_timer(timer_ref), 100
     end
 
     test "notifies passed pid" do
@@ -332,8 +332,8 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :work,
         current_work_interval: 1,
-        time_left_ms: ^time_left_ms
-      } = Timer.get_status(context.pid)
+        saved_timer_value: ^time_left_ms
+      } = :sys.get_state(context.pid)
     end
 
     test "notifies passed pid" do
@@ -366,10 +366,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         interval_type: :work,
         current_work_interval: 1,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(25), time_left_ms, 100
+      assert_in_delta :timer.minutes(25), Process.read_timer(timer_ref), 100
     end
 
     test "notifies passed pid" do
@@ -395,17 +395,13 @@ defmodule Test.Core.TimerTest do
     end
 
     test "makes timer paused", context do
-      %{ticking?: false} = Timer.get_status(context.pid)
-    end
+      %{
+        ticking?: false,
+        timer_ref: nil,
+        saved_timer_value: saved_timer_value
+      } = :sys.get_state(context.pid)
 
-    test "saves elixir timer value", context do
-      %{time_left_ms: time_left_ms} = Timer.get_status(context.pid)
-
-      assert_in_delta :timer.minutes(25), time_left_ms, 100
-    end
-
-    test "cancels elixir timer", context do
-      %{timer_ref: nil} = :sys.get_state(context.pid)
+      assert_in_delta :timer.minutes(25), saved_timer_value, 100
     end
   end
 
@@ -432,7 +428,7 @@ defmodule Test.Core.TimerTest do
     end
 
     test "does nothing", context do
-      assert %{ticking?: false} = Timer.get_status(context.pid)
+      assert %{ticking?: false} = :sys.get_state(context.pid)
     end
   end
 
@@ -458,10 +454,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         ticking?: true,
         interval_type: :work,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(25), time_left_ms, 100
+      assert_in_delta :timer.minutes(25), Process.read_timer(timer_ref), 100
     end
   end
 
@@ -488,10 +484,10 @@ defmodule Test.Core.TimerTest do
       assert %{
         ticking?: true,
         interval_type: :short_break,
-        time_left_ms: time_left_ms
-      } = Timer.get_status(context.pid)
+        timer_ref: timer_ref
+      } = :sys.get_state(context.pid)
 
-      assert_in_delta :timer.minutes(5), time_left_ms, 100
+      assert_in_delta :timer.minutes(5), Process.read_timer(timer_ref), 100
     end
   end
 
@@ -517,7 +513,62 @@ defmodule Test.Core.TimerTest do
     end
 
     test "does nothing", context do
-      assert %{ticking?: true} = Timer.get_status(context.pid)
+      assert %{ticking?: true} = :sys.get_state(context.pid)
+    end
+  end
+
+  describe "ticking timer status" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+
+      %{pid: pid}
+    end
+
+    test "returns status", context do
+      assert %{
+        ticking?: true,
+        interval_type: :work,
+        time_left_ms: time_left_ms,
+        current_work_interval: 1,
+      } = Timer.get_status(context.pid)
+
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
+    end
+  end
+
+  describe "paused timer status" do
+    setup do
+      opts = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+
+      {:ok, pid} = GenServer.start_link(Timer, opts)
+      pause_timer(pid)
+
+      %{pid: pid}
+    end
+
+    test "returns status", context do
+      assert %{
+        ticking?: false,
+        interval_type: :work,
+        time_left_ms: time_left_ms,
+        current_work_interval: 1,
+      } = Timer.get_status(context.pid)
+
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
   end
 
@@ -544,13 +595,13 @@ defmodule Test.Core.TimerTest do
       %{pid: pid}
     end
 
-    test "changes timer status", context do
+    test "updates timer", context do
       assert %{
         ticking?: false,
         interval_type: :short_break,
         current_work_interval: 2,
-        time_left_ms: 1
-      } = Timer.get_status(context.pid)
+        saved_timer_value: 1
+      } = :sys.get_state(context.pid)
     end
   end
 
