@@ -2,15 +2,25 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.SyncTimer do
   use SyncedTomatoes.Web.WebSocket.Method
 
   alias SyncedTomatoes.Core.Commands.SyncTimer
-  alias SyncedTomatoes.Core.Queries.GetTimer
   alias SyncedTomatoes.Core.Types.PositiveInteger
+  alias SyncedTomatoes.Web.WebSocket.Methods.GetTimer
 
   defmodule SyncTimerRequest do
     defmodule IntervalType do
       @behaviour Construct.Type
 
-      def cast(v) when is_binary(v) and v in ~w(work short_break long_break), do: {:ok, v}
-      def cast(_), do: {:error, :invalid}
+      def cast(value)
+          when is_binary(value) and value in ~w(work shortBreak longBreak)
+      do
+        {:ok, map(value)}
+      end
+      def cast(_) do
+        {:error, :invalid}
+      end
+
+      defp map("work"), do: :work
+      defp map("shortBreak"), do: :short_break
+      defp map("longBreak"), do: :long_break
     end
 
     use Construct do
@@ -38,7 +48,7 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.SyncTimer do
   def execute(context, sync_data) do
     case SyncTimer.execute(context.user_id, sync_data) do
       :ok ->
-        GetTimer.execute(context.user_id)
+        GetTimer.call(context, %{})
 
       {:error, :not_found} ->
         {:error, "Timer not started"}

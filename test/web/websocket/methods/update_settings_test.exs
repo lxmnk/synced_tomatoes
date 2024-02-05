@@ -1,4 +1,4 @@
-defmodule Test.Web.WebSocket.UpdateSettingsTest do
+defmodule Test.Web.WebSocket.Methods.UpdateSettingsTest do
   use Test.Cases.WSCase
 
   alias SyncedTomatoes.Core.Settings

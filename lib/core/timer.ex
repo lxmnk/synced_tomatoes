@@ -9,9 +9,12 @@ defmodule SyncedTomatoes.Core.Timer do
 
   @impl true
   def init(opts) do
-    work_min = Keyword.fetch!(opts, :work_min)
-    short_break_min = Keyword.fetch!(opts, :short_break_min)
-    long_break_min = Keyword.fetch!(opts, :long_break_min)
+    interval_min = %{
+      work: Keyword.fetch!(opts, :work_min),
+      short_break: Keyword.fetch!(opts, :short_break_min),
+      long_break: Keyword.fetch!(opts, :long_break_min)
+    }
+
     work_intervals_count = Keyword.fetch!(opts, :work_intervals_count)
     auto_next = Keyword.fetch!(opts, :auto_next)
 
@@ -19,14 +22,16 @@ defmodule SyncedTomatoes.Core.Timer do
     interval_type = Keyword.get(opts, :interval_type, :work)
     current_work_interval = Keyword.get(opts, :current_work_interval, 1)
 
+    notify_pid = Keyword.get(opts, :notify_pid)
+
     timer_ref = Process.send_after(
-      self(), :work_finished, time_left_ms || :timer.minutes(work_min)
+      self(),
+      interval_finished(interval_type),
+      time_left_ms || interval_ms(interval_min, interval_type)
     )
 
     {:ok, %{
-      work_min: work_min,
-      short_break_min: short_break_min,
-      long_break_min: long_break_min,
+      interval_min: interval_min,
       work_intervals_count: work_intervals_count,
       auto_next: auto_next,
 
@@ -34,7 +39,9 @@ defmodule SyncedTomatoes.Core.Timer do
       interval_type: interval_type,
       current_work_interval: current_work_interval,
       timer_ref: timer_ref,
-      saved_timer_value: nil
+      saved_timer_value: nil,
+
+      notify_pid: notify_pid
     }}
   end
 
@@ -55,9 +62,9 @@ defmodule SyncedTomatoes.Core.Timer do
   end
 
   @impl true
-  def handle_call(:status, _, state) do
+  def handle_call(:status, _, %{ticking?: ticking?} = state) do
     time_left_ms =
-      if state.timer_ref do
+      if ticking? do
         Process.read_timer(state.timer_ref)
       else
         state.saved_timer_value
@@ -94,8 +101,10 @@ defmodule SyncedTomatoes.Core.Timer do
   def handle_call(:continue, _, %{ticking?: true} = state) do
     {:reply, {:error, :already_ticking}, state}
   end
-  def handle_call(:continue, _, %{saved_timer_value: saved_timer_value} = state) do
-    timer_ref = Process.send_after(self(), :work_finished, saved_timer_value)
+  def handle_call(:continue, _, state) do
+    timer_ref = Process.send_after(
+      self(), interval_finished(state.interval_type), state.saved_timer_value
+    )
 
     {:reply, :ok, %{state | ticking?: true, timer_ref: timer_ref, saved_timer_value: nil}}
   end
@@ -104,10 +113,12 @@ defmodule SyncedTomatoes.Core.Timer do
   def handle_call({:sync, _}, _, %{ticking?: true} = state) do
     {:reply, {:error, :timer_ticking}, state}
   end
-  def handle_call({:sync, sync_data}, _, state) do
+  def handle_call({:sync, %{interval_type: interval_type} = sync_data}, _, state)
+      when interval_type in ~w(work short_break long_break)a
+  do
     {:reply, :ok, %{
       state |
-        interval_type: sync_data.interval_type,
+        interval_type: interval_type,
         current_work_interval: sync_data.current_work_interval,
         saved_timer_value: sync_data.time_left_ms
     }}
@@ -115,17 +126,19 @@ defmodule SyncedTomatoes.Core.Timer do
 
   @impl true
   def handle_info(:work_finished, state) do
-    {next_interval_type, next_interval_min} =
+    notify(state, :work_finished)
+
+    next_interval_type =
       if state.current_work_interval == state.work_intervals_count do
-        {:long_break, state.long_break_min}
+        :long_break
       else
-        {:short_break, state.short_break_min}
+        :short_break
       end
 
+    next_interval_ms = interval_ms(state.interval_min, next_interval_type)
+
     if state.auto_next do
-      timer_ref = Process.send_after(
-        self(), next_interval_type, :timer.minutes(next_interval_min)
-      )
+      timer_ref = Process.send_after(self(), next_interval_type, next_interval_ms)
 
       {:noreply, %{state | interval_type: next_interval_type, timer_ref: timer_ref}}
     else
@@ -134,63 +147,81 @@ defmodule SyncedTomatoes.Core.Timer do
           interval_type: next_interval_type,
           ticking?: false,
           timer_ref: nil,
-          saved_timer_value: :timer.minutes(next_interval_min)
+          saved_timer_value: next_interval_ms
       }}
     end
   end
 
   @impl true
-  def handle_info(
-    :short_break_finished,
-    %{
-      work_min: work_min,
-      current_work_interval: current_work_interval,
-      auto_next: true
-    } = state
-  )
-  do
-    timer_ref = Process.send_after(self(), :work_finished, :timer.minutes(work_min))
+  def handle_info(:short_break_finished, state) do
+    notify(state, :short_break_finished)
 
-    {:noreply, %{
-      state |
-        interval_type: :work,
-        timer_ref: timer_ref,
-        current_work_interval: current_work_interval + 1
-    }}
-  end
-  def handle_info(
-    :short_break_finished,
-    %{
-      work_min: work_min,
-      current_work_interval: current_work_interval,
-      auto_next: false
-    } = state
-  )
-  do
-    {:noreply, %{
-      state |
-        interval_type: :work,
-        ticking?: false,
-        timer_ref: nil,
-        saved_timer_value: :timer.minutes(work_min),
-        current_work_interval: current_work_interval + 1
-    }}
+    if state.auto_next do
+      timer_ref = Process.send_after(
+        self(),
+        :work_finished,
+        interval_ms(state.interval_min, :work)
+      )
+
+      {:noreply, %{
+        state |
+          interval_type: :work,
+          timer_ref: timer_ref,
+          current_work_interval: state.current_work_interval + 1
+      }}
+    else
+      {:noreply, %{
+        state |
+          interval_type: :work,
+          ticking?: false,
+          timer_ref: nil,
+          saved_timer_value: interval_ms(state.interval_min, :work),
+          current_work_interval: state.current_work_interval + 1
+      }}
+    end
   end
 
   @impl true
-  def handle_info(:long_break_finished, %{work_min: work_min, auto_next: true} = state) do
-    timer_ref = Process.send_after(self(), :work_finished, :timer.minutes(work_min))
+  def handle_info(:long_break_finished, state) do
+    notify(state, :long_break_finished)
 
-    {:noreply, %{state | interval_type: :work, timer_ref: timer_ref, current_work_interval: 1}}
+    if state.auto_next do
+      timer_ref = Process.send_after(
+        self(),
+        :work_finished,
+        interval_ms(state.interval_min, :work)
+      )
+
+      {:noreply, %{
+        state |
+          interval_type: :work,
+          timer_ref: timer_ref,
+          current_work_interval: 1
+      }}
+    else
+      {:noreply, %{
+        state |
+          interval_type: :work,
+          ticking?: false,
+          timer_ref: nil,
+          saved_timer_value: interval_ms(state.interval_min, :work),
+          current_work_interval: 1
+      }}
+    end
   end
-  def handle_info(:long_break_finished, %{work_min: work_min, auto_next: false} = state) do
-    {:noreply, %{
-      state |
-        interval_type: :work,
-        ticking?: false,
-        timer_ref: nil,
-        saved_timer_value: :timer.minutes(work_min),
-        current_work_interval: 1
-    }}
+
+  defp interval_finished(:work), do: :work_finished
+  defp interval_finished(:short_break), do: :short_break_finished
+  defp interval_finished(:long_break), do: :long_break_finished
+
+  defp interval_ms(interval_min, interval_type) do
+    :timer.minutes(Map.fetch!(interval_min, interval_type))
+  end
+
+  defp notify(%{notify_pid: pid}, message) when is_pid(pid) do
+    send(pid, message)
+  end
+  defp notify(_, _) do
+    :ok
   end
 end

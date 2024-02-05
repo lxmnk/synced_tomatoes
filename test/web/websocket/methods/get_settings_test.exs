@@ -1,4 +1,4 @@
-defmodule Test.Web.WebSocket.GetSettingsTest do
+defmodule Test.Web.WebSocket.Methods.GetSettingsTest do
   use Test.Cases.WSCase
 
   setup :user

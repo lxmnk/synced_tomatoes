@@ -4,12 +4,14 @@ defmodule SyncedTomatoes.Core.Commands.CreateToken do
 
   @token_bytes 32
 
-  def execute(user_id) do
-    token =
+  def execute(user_id, device_id) do
+    token_value =
       @token_bytes
       |> :crypto.strong_rand_bytes()
       |> Base.encode16()
 
-    Postgres.insert(%Token{user_id: user_id, value: token})
+    token = %Token{user_id: user_id, value: token_value, device_id: device_id}
+
+    Postgres.insert(token)
   end
 end

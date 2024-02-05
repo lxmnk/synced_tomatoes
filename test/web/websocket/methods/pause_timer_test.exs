@@ -1,4 +1,4 @@
-defmodule Test.Web.WebSocket.PauseTimerTest do
+defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
   use Test.Cases.WSCase
 
   alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
@@ -26,10 +26,10 @@ defmodule Test.Web.WebSocket.PauseTimerTest do
       assert %{
         "id" => _,
         "result" => %{
-          "current_work_interval" => 1,
-          "interval_type" => "work",
+          "currentWorkInterval" => 1,
+          "intervalType" => "work",
           "state" => "paused",
-          "time_left_ms" => time_left_ms
+          "timeLeftMs" => time_left_ms
         }
       } = context.result
 

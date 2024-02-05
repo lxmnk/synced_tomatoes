@@ -2,13 +2,13 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.StartTimer do
   use SyncedTomatoes.Web.WebSocket.Method
 
   alias SyncedTomatoes.Core.Commands.StartTimer
-  alias SyncedTomatoes.Core.Queries.GetTimer
+  alias SyncedTomatoes.Web.WebSocket.Methods.GetTimer
 
   @impl true
   def execute(context, _) do
-    case StartTimer.execute(context.user_id) do
+    case StartTimer.execute(context.user_id, context.websocket_pid) do
       :ok ->
-        GetTimer.execute(context.user_id)
+        GetTimer.call(context, %{})
 
       {:error, :already_ticking} ->
         {:error, "Already ticking"}

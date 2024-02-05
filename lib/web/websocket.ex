@@ -4,8 +4,8 @@ defmodule SyncedTomatoes.Web.WebSocket do
   alias Plug.Conn.Query
   alias SyncedTomatoes.Core.Commands.{AuthenticateUser, DumpTimer}
   alias SyncedTomatoes.Core.TimerSupervisor
-  alias SyncedTomatoes.Web.WebSocket.MethodDispatcher
-  alias SyncedTomatoes.Web.WebSocket.WSRequest
+  alias SyncedTomatoes.Web.WebSocket.{MethodDispatcher, WSRequest}
+  alias SyncedTomatoes.Web.WebSocketRegistry
 
   require Logger
 
@@ -20,10 +20,18 @@ defmodule SyncedTomatoes.Web.WebSocket do
   def websocket_init(%{token: nil}) do
     {[@invalid_credentials_frame], %{}}
   end
-  def websocket_init(%{token: token}) do
-    case AuthenticateUser.execute(token) do
-      {:ok, user_id} ->
-        {:ok, %{user_id: user_id}, :hibernate}
+  def websocket_init(%{token: token_value}) do
+    case AuthenticateUser.execute(token_value) do
+      {:ok, token} ->
+        WebSocketRegistry.add(token.user_id, token.device_id)
+
+        state = %{
+          user_id: token.user_id,
+          device_id: token.device_id,
+          websocket_pid: self()
+        }
+
+        {:ok, state, :hibernate}
 
       {:error, :invalid_credentials} ->
         {[@invalid_credentials_frame], %{}}
@@ -73,6 +81,14 @@ defmodule SyncedTomatoes.Web.WebSocket do
     end
   end
 
+  def websocket_info(message, state) when is_atom(message) do
+    event = Jsonrs.encode!(%{
+      event: message,
+      payload: %{}
+    })
+
+    {:reply, {:text, event}, state, :hibernate}
+  end
   def websocket_info(_, state) do
     {:ok, state, :hibernate}
   end

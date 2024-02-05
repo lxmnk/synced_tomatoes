@@ -1,4 +1,4 @@
-defmodule Test.Web.WebSocket.GetTimerTest do
+defmodule Test.Web.WebSocket.Methods.GetTimerTest do
   use Test.Cases.WSCase
 
   alias SyncedTomatoes.Core.TimerSupervisor

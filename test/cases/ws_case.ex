@@ -20,65 +20,118 @@ defmodule Test.Cases.WSCase do
     Sandbox.mode(SyncedTomatoes.Repos.Postgres, {:shared, self()})
   end
 
-  defmacro raw_call(token \\ nil, binary) do
-    quote do
-      {:ok, conn} = Mint.HTTP.connect(:http, "127.0.0.1", SyncedTomatoes.http_port)
-      {:ok, conn, ref} = Mint.WebSocket.upgrade(:ws, conn, "/ws?token=#{unquote(token)}", [])
+  defmodule WSConnection do
+    defstruct ~w(conn ref websocket)a
+  end
 
-      upgrade_reply = receive(do: (message -> message))
-      {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers}, {:done, ^ref}]} =
-        Mint.WebSocket.stream(conn, upgrade_reply)
+  def open_websocket(token) do
+    {:ok, conn} = Mint.HTTP.connect(:http, "127.0.0.1", SyncedTomatoes.http_port)
+    {:ok, conn, ref} = Mint.WebSocket.upgrade(:ws, conn, "/ws?token=#{token}", [])
 
-      {:ok, conn, websocket} = Mint.WebSocket.new(conn, ref, status, resp_headers)
+    {:ok, upgrade_reply} = receive_with_timeout()
 
-      {:ok, websocket, data} = Mint.WebSocket.encode(websocket, {:text, unquote(binary)})
-      {:ok, conn} = Mint.WebSocket.stream_request_body(conn, ref, data)
+    {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers}, {:done, ^ref}]} =
+      Mint.WebSocket.stream(conn, upgrade_reply)
 
-      message_reply = receive(do: (message -> message))
+    {:ok, conn, websocket} = Mint.WebSocket.new(conn, ref, status, resp_headers)
 
-      {:ok, _, [{:data, ^ref, data}]} = Mint.WebSocket.stream(conn, message_reply)
+    {:ok, %WSConnection{conn: conn, ref: ref, websocket: websocket}}
+  end
 
-      call_result =
-        case Mint.WebSocket.decode(websocket, data) do
-          {:ok, _, [{:text, response}]} ->
-            {:ok, response}
+  def close_websocket(%WSConnection{conn: conn, ref: ref, websocket: websocket}) do
+    {:ok, websocket, data} = Mint.WebSocket.encode(websocket, :close)
 
-          {:ok, response, [frame]} ->
-            {:error, frame}
-        end
+    with {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data),
+         {:ok, close_response} <- receive_with_timeout(),
+         {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, close_response)
+    do
+      {:ok, _, [{:close, 1_000, ""}]} = Mint.WebSocket.decode(websocket, data)
 
-      {:ok, websocket, data} = Mint.WebSocket.encode(websocket, :close)
-
-      with {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data),
-           close_response = receive(do: (message -> message)),
-           {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, close_response)
-      do
-        {:ok, websocket, [{:close, 1_000, ""}]} = Mint.WebSocket.decode(websocket, data)
-
-        Mint.HTTP.close(conn)
-      end
-
-      call_result
+      Mint.HTTP.close(conn)
     end
   end
 
-  defmacro call!(token, method, params) do
-    quote do
-      id = UUID4.generate()
-      request = Jsonrs.encode!(%{id: id, method: unquote(method), params: unquote(params)})
+  def send_event(%WSConnection{conn: conn, ref: ref, websocket: websocket}, binary) do
+    {:ok, websocket, data} = Mint.WebSocket.encode(websocket, {:text, binary})
+    {:ok, conn} = Mint.WebSocket.stream_request_body(conn, ref, data)
 
-      response =
-        case raw_call(unquote(token), request) do
-          {:ok, response} ->
-            Jsonrs.decode!(response)
+    {:ok, %WSConnection{conn: conn, ref: ref, websocket: websocket}}
+  end
 
-          {:error, reason} ->
-            raise RuntimeError, message: inspect(reason)
-        end
+  def receive_frame(%WSConnection{conn: conn, ref: ref, websocket: websocket}) do
+    with {:ok, message_reply} <- receive_with_timeout(),
+         {:ok, _, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, message_reply),
+         {:ok, _, [{:text, event}]} <- Mint.WebSocket.decode(websocket, data)
+    do
+      {:ok, event}
+    else
+      {:ok, _, [frame]} ->
+        {:error, frame}
 
-      assert response["id"] == id, "request and response `id`s don't match"
+      error ->
+        error
+    end
+  end
 
-      response
+  def receive_event!(ws_connection) do
+    case receive_frame(ws_connection) do
+      {:ok, response} ->
+        Jsonrs.decode!(response)
+
+      {:error, reason} ->
+        raise RuntimeError, message: inspect(reason)
+    end
+  end
+
+  def raw_call(%WSConnection{} = ws_connection, binary) do
+    {:ok, ws_connection} = send_event(ws_connection, binary)
+
+    receive_frame(ws_connection)
+  end
+  def raw_call(token, binary) do
+    {:ok, ws_connection} = open_websocket(token)
+
+    {:ok, ws_connection} = send_event(ws_connection, binary)
+
+    call_result = receive_frame(ws_connection)
+
+    close_websocket(ws_connection)
+
+    call_result
+  end
+
+  def call!(token_or_ws_connection, method, params) do
+    id = UUID4.generate()
+    request = Jsonrs.encode!(%{id: id, method: method, params: params})
+
+    response =
+      case raw_call(token_or_ws_connection, request) do
+        {:ok, response} ->
+          Jsonrs.decode!(response)
+
+        {:error, reason} ->
+          raise RuntimeError, message: inspect(reason)
+      end
+
+    assert response["id"] == id, "request and response `id`s don't match"
+
+    response
+  end
+
+  defp receive_with_timeout(timeout \\ 1_000) do
+    reply =
+      receive do
+        message -> message
+      after
+        timeout -> {:error, :frame_not_received}
+      end
+
+    case reply do
+      {:tcp, _, _} ->
+        {:ok, reply}
+
+      error ->
+        error
     end
   end
 end

@@ -1,4 +1,4 @@
-defmodule Test.Web.WebSocket.StartTimerTest do
+defmodule Test.Web.WebSocket.Methods.StartTimerTest do
   use Test.Cases.WSCase
 
   alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
@@ -16,10 +16,10 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       assert %{
         "id" => _,
         "result" => %{
-          "current_work_interval" => 1,
-          "interval_type" => "work",
           "state" => "ticking",
-          "time_left_ms" => time_left_ms
+          "intervalType" => "work",
+          "currentWorkInterval" => 1,
+          "timeLeftMs" => time_left_ms
         }
       } = context.result
 
@@ -49,10 +49,10 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       assert %{
         "id" => _,
         "result" => %{
-          "current_work_interval" => 1,
-          "interval_type" => "work",
+          "currentWorkInterval" => 1,
+          "intervalType" => "work",
           "state" => "ticking",
-          "time_left_ms" => time_left_ms
+          "timeLeftMs" => time_left_ms
         }
       } = context.result
 
@@ -78,10 +78,10 @@ defmodule Test.Web.WebSocket.StartTimerTest do
       assert %{
         "id" => _,
         "result" => %{
-          "current_work_interval" => 2,
-          "interval_type" => "long_break",
+          "currentWorkInterval" => 2,
+          "intervalType" => "long_break",
           "state" => "ticking",
-          "time_left_ms" => time_left_ms
+          "timeLeftMs" => time_left_ms
         }
       } = context.result
 

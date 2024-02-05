@@ -5,6 +5,7 @@ defmodule SyncedTomatoes.Application do
     children = [
       SyncedTomatoes.Repos.Postgres,
       SyncedTomatoes.Core.TimerSupervisor,
+      SyncedTomatoes.Web.WebSocketRegistry,
       cowboy_spec(),
     ]
 

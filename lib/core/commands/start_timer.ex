@@ -2,17 +2,17 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
   alias SyncedTomatoes.Core.{Settings, Timer, TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Repos.Postgres
 
-  def execute(user_id) do
+  def execute(user_id, notify_pid) do
     case TimerSupervisor.fetch_timer(user_id) do
       {:ok, timer} ->
         Timer.continue(timer)
 
       {:error, :not_found} ->
-        start_timer(user_id)
+        start_timer(user_id, notify_pid)
     end
   end
 
-  def start_timer(user_id) do
+  def start_timer(user_id, notify_pid) do
     settings = Postgres.get!(Settings, user_id)
     timer_dump = Postgres.get(TimerDump, user_id)
 
@@ -22,6 +22,7 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
       long_break_min: settings.long_break_min,
       work_intervals_count: settings.work_intervals_count,
       auto_next: settings.auto_next,
+      notify_pid: notify_pid,
     ]
 
     timer_opts = maybe_load_timer_dump(timer_opts, timer_dump)
@@ -42,7 +43,7 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
     Keyword.merge(
       timer_opts,
       [
-        interval_type: dump.interval_type,
+        interval_type: String.to_atom(dump.interval_type),
         current_work_interval: dump.current_work_interval,
         time_left_ms: dump.time_left_ms
       ]

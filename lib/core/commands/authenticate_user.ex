@@ -8,7 +8,7 @@ defmodule SyncedTomatoes.Core.Commands.AuthenticateUser do
         {:error, :invalid_credentials}
 
       token ->
-        {:ok, token.user_id}
+        {:ok, token}
     end
   end
 end

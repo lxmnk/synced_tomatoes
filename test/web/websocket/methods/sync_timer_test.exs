@@ -1,4 +1,4 @@
-defmodule Test.Web.WebSocket.SyncTimerTest do
+defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
   use Test.Cases.WSCase
 
   alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
@@ -19,7 +19,7 @@ defmodule Test.Web.WebSocket.SyncTimerTest do
       Timer.pause(pid)
 
       params = %{
-        intervalType: :long_break,
+        intervalType: "longBreak",
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
@@ -32,10 +32,10 @@ defmodule Test.Web.WebSocket.SyncTimerTest do
       assert %{
         "id" => _,
         "result" => %{
-          "current_work_interval" => 2,
-          "interval_type" => "long_break",
           "state" => "paused",
-          "time_left_ms" => time_left_ms
+          "currentWorkInterval" => 2,
+          "intervalType" => "long_break",
+          "timeLeftMs" => time_left_ms
         }
       } = context.result
 
@@ -56,7 +56,7 @@ defmodule Test.Web.WebSocket.SyncTimerTest do
       TimerSupervisor.start_timer(context.user.id, settings)
 
       params = %{
-        intervalType: :long_break,
+        intervalType: "longBreak",
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
@@ -77,7 +77,7 @@ defmodule Test.Web.WebSocket.SyncTimerTest do
   describe "timer not started" do
     setup context do
       params = %{
-        intervalType: :long_break,
+        intervalType: "longBreak",
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }

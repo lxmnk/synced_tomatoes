@@ -2,13 +2,16 @@ defmodule Test.Web.API.V1.RegisterTest do
   use Test.Cases.APICase
 
   alias SyncedTomatoes.Core.{Settings, User}
+  alias SyncedTomatoes.Core.Types.UUID4
   alias SyncedTomatoes.Repos.Postgres
 
   describe "common" do
     setup do
+      device_id = UUID4.generate()
+
       %{login: login} = build(:user)
 
-      response = post("/api/v1/register", %{"login" => login})
+      response = post("/api/v1/register", %{"login" => login, "device_id" => device_id})
 
       %{login: login, response: response}
     end
@@ -37,9 +40,11 @@ defmodule Test.Web.API.V1.RegisterTest do
 
   describe "with existing login" do
     setup do
+      device_id = UUID4.generate()
+
       %{login: login} = insert(:user)
 
-      response = post("/api/v1/register", %{"login" => login})
+      response = post("/api/v1/register", %{"login" => login, "device_id" => device_id})
 
       %{login: login, response: response}
     end
