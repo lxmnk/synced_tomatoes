@@ -1,6 +1,7 @@
 defmodule SyncedTomatoes.Factory do
   use ExMachina.Ecto, repo: SyncedTomatoes.Repos.Postgres
 
+  alias SyncedTomatoes.Core.Types.UUID4
   alias SyncedTomatoes.Core.{Settings, TimerDump, Token, User}
 
   def user_factory do
@@ -8,7 +9,7 @@ defmodule SyncedTomatoes.Factory do
   end
 
   def token_factory do
-    %Token{value: sequence("secret_")}
+    %Token{value: sequence("secret_"), device_id: UUID4.generate()}
   end
 
   def settings_factory do

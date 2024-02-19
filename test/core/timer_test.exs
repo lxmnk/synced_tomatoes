@@ -97,13 +97,15 @@ defmodule Test.Core.TimerTest do
 
   describe "starts short break" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: false,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -130,13 +132,15 @@ defmodule Test.Core.TimerTest do
 
   describe "starts short break with auto_next" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: true,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -163,13 +167,15 @@ defmodule Test.Core.TimerTest do
 
   describe "starts long break" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: false,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -199,13 +205,15 @@ defmodule Test.Core.TimerTest do
 
   describe "starts long break with auto_next" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: true,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -235,13 +243,15 @@ defmodule Test.Core.TimerTest do
 
   describe "starts work after short break" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: false,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -271,13 +281,15 @@ defmodule Test.Core.TimerTest do
 
   describe "start work after short break with auto_next" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: true,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -307,13 +319,15 @@ defmodule Test.Core.TimerTest do
 
   describe "starts work after long break" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: false,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)
@@ -343,13 +357,15 @@ defmodule Test.Core.TimerTest do
 
   describe "start work after long break with auto_next" do
     setup do
+      test_pid = self()
+
       opts = [
         work_min: 25,
         short_break_min: 5,
         long_break_min: 15,
         work_intervals_count: 4,
         auto_next: true,
-        notify_pid: self()
+        notify_fun: fn message -> send(test_pid, message) end
       ]
 
       {:ok, pid} = GenServer.start_link(Timer, opts)

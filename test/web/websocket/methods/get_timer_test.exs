@@ -6,6 +6,12 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
   setup :user
 
   describe "timer not started" do
+    setup context do
+      {:ok, result} = rpc_call(context.token, "getTimer", %{})
+
+      %{result: result}
+    end
+
     test "returns default timer", context do
       time_left_ms = :timer.minutes(25)
 
@@ -17,7 +23,7 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
           "timeLeftMs" => ^time_left_ms,
           "currentWorkInterval" => 1
         }
-      } = call!(context.token, "getTimer", %{})
+      } = context.result
     end
   end
 
@@ -33,7 +39,9 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
 
       TimerSupervisor.start_timer(context.user.id, settings)
 
-      :ok
+      {:ok, result} = rpc_call(context.token, "getTimer", %{})
+
+      %{result: result}
     end
 
     test "returns timer", context do
@@ -45,7 +53,7 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
           "timeLeftMs" => time_left_ms,
           "currentWorkInterval" => 1
         }
-      } = call!(context.token, "getTimer", %{})
+      } = context.result
 
       assert_in_delta :timer.minutes(25), time_left_ms, 100
     end

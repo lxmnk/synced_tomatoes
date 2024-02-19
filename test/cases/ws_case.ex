@@ -20,118 +20,45 @@ defmodule Test.Cases.WSCase do
     Sandbox.mode(SyncedTomatoes.Repos.Postgres, {:shared, self()})
   end
 
-  defmodule WSConnection do
-    defstruct ~w(conn ref websocket)a
+  def raw_call(pid, text) when is_pid(pid) do
+    with :ok <- Test.WebSocketClient.send_text(pid, text) do
+      Test.WebSocketClient.receive_text(pid)
+    end
   end
+  def raw_call(token, text) do
+    {:ok, pid} = Test.WebSocketClient.start_link(token: token)
 
-  def open_websocket(token) do
-    {:ok, conn} = Mint.HTTP.connect(:http, "127.0.0.1", SyncedTomatoes.http_port)
-    {:ok, conn, ref} = Mint.WebSocket.upgrade(:ws, conn, "/ws?token=#{token}", [])
-
-    {:ok, upgrade_reply} = receive_with_timeout()
-
-    {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers}, {:done, ^ref}]} =
-      Mint.WebSocket.stream(conn, upgrade_reply)
-
-    {:ok, conn, websocket} = Mint.WebSocket.new(conn, ref, status, resp_headers)
-
-    {:ok, %WSConnection{conn: conn, ref: ref, websocket: websocket}}
-  end
-
-  def close_websocket(%WSConnection{conn: conn, ref: ref, websocket: websocket}) do
-    {:ok, websocket, data} = Mint.WebSocket.encode(websocket, :close)
-
-    with {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data),
-         {:ok, close_response} <- receive_with_timeout(),
-         {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, close_response)
+    with :ok <- Test.WebSocketClient.connect(pid),
+         :ok <- Test.WebSocketClient.send_text(pid, text),
+         {:ok, reply} <- Test.WebSocketClient.receive_text(pid),
+         :ok <- Test.WebSocketClient.disconnect(pid)
     do
-      {:ok, _, [{:close, 1_000, ""}]} = Mint.WebSocket.decode(websocket, data)
-
-      Mint.HTTP.close(conn)
+      {:ok, reply}
     end
   end
 
-  def send_event(%WSConnection{conn: conn, ref: ref, websocket: websocket}, binary) do
-    {:ok, websocket, data} = Mint.WebSocket.encode(websocket, {:text, binary})
-    {:ok, conn} = Mint.WebSocket.stream_request_body(conn, ref, data)
-
-    {:ok, %WSConnection{conn: conn, ref: ref, websocket: websocket}}
-  end
-
-  def receive_frame(%WSConnection{conn: conn, ref: ref, websocket: websocket}) do
-    with {:ok, message_reply} <- receive_with_timeout(),
-         {:ok, _, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, message_reply),
-         {:ok, _, [{:text, event}]} <- Mint.WebSocket.decode(websocket, data)
-    do
-      {:ok, event}
-    else
-      {:ok, _, [frame]} ->
-        {:error, frame}
-
-      error ->
-        error
-    end
-  end
-
-  def receive_event!(ws_connection) do
-    case receive_frame(ws_connection) do
-      {:ok, response} ->
-        Jsonrs.decode!(response)
-
-      {:error, reason} ->
-        raise RuntimeError, message: inspect(reason)
-    end
-  end
-
-  def raw_call(%WSConnection{} = ws_connection, binary) do
-    {:ok, ws_connection} = send_event(ws_connection, binary)
-
-    receive_frame(ws_connection)
-  end
-  def raw_call(token, binary) do
-    {:ok, ws_connection} = open_websocket(token)
-
-    {:ok, ws_connection} = send_event(ws_connection, binary)
-
-    call_result = receive_frame(ws_connection)
-
-    close_websocket(ws_connection)
-
-    call_result
-  end
-
-  def call!(token_or_ws_connection, method, params) do
+  def rpc_call(token_or_pid, method, params) do
     id = UUID4.generate()
     request = Jsonrs.encode!(%{id: id, method: method, params: params})
 
-    response =
-      case raw_call(token_or_ws_connection, request) do
-        {:ok, response} ->
-          Jsonrs.decode!(response)
-
-        {:error, reason} ->
-          raise RuntimeError, message: inspect(reason)
-      end
-
-    assert response["id"] == id, "request and response `id`s don't match"
-
-    response
+    with {:ok, raw_reply} <- raw_call(token_or_pid, request),
+         {:ok, reply} <- Jsonrs.decode(raw_reply),
+         :ok <- rpc_id_matches(id, reply["id"])
+    do
+      {:ok, reply}
+    end
   end
 
-  defp receive_with_timeout(timeout \\ 1_000) do
-    reply =
-      receive do
-        message -> message
-      after
-        timeout -> {:error, :frame_not_received}
-      end
-
-    case reply do
-      {:tcp, _, _} ->
-        {:ok, reply}
-
-      error ->
-        error
+  def rpc_event(pid) do
+    with {:ok, raw_event} <- Test.WebSocketClient.receive_text(pid) do
+      Jsonrs.decode(raw_event)
     end
+  end
+
+  defp rpc_id_matches(id, id) do
+    :ok
+  end
+  defp rpc_id_matches(_, _) do
+    {:error, :ids_dont_match}
   end
 end

@@ -23,7 +23,7 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
-      result = call!(context.token, "syncTimer", params)
+      {:ok, result} = rpc_call(context.token, "syncTimer", params)
 
       %{result: result, timer_pid: pid}
     end
@@ -60,7 +60,7 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
-      result = call!(context.token, "syncTimer", params)
+      {:ok, result} = rpc_call(context.token, "syncTimer", params)
 
       %{result: result}
     end
@@ -81,7 +81,7 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
-      result = call!(context.token, "syncTimer", params)
+      {:ok, result} = rpc_call(context.token, "syncTimer", params)
 
       %{result: result}
     end

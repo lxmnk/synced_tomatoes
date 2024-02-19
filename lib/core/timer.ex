@@ -22,7 +22,7 @@ defmodule SyncedTomatoes.Core.Timer do
     interval_type = Keyword.get(opts, :interval_type, :work)
     current_work_interval = Keyword.get(opts, :current_work_interval, 1)
 
-    notify_pid = Keyword.get(opts, :notify_pid)
+    notify_fun = Keyword.get(opts, :notify_fun)
 
     timer_ref = Process.send_after(
       self(),
@@ -41,7 +41,7 @@ defmodule SyncedTomatoes.Core.Timer do
       timer_ref: timer_ref,
       saved_timer_value: nil,
 
-      notify_pid: notify_pid
+      notify_fun: notify_fun
     }}
   end
 
@@ -218,8 +218,8 @@ defmodule SyncedTomatoes.Core.Timer do
     :timer.minutes(Map.fetch!(interval_min, interval_type))
   end
 
-  defp notify(%{notify_pid: pid}, message) when is_pid(pid) do
-    send(pid, message)
+  defp notify(%{notify_fun: fun}, message) when is_function(fun) do
+    fun.(message)
   end
   defp notify(_, _) do
     :ok

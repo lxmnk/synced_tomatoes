@@ -17,7 +17,7 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
 
       TimerSupervisor.start_timer(context.user.id, settings)
 
-      result = call!(context.token, "pauseTimer", %{})
+      {:ok, result} = rpc_call(context.token, "pauseTimer", %{})
 
       %{result: result}
     end
@@ -39,7 +39,7 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
 
   describe "timer not started" do
     setup context do
-      result = call!(context.token, "pauseTimer", %{})
+      {:ok, result} = rpc_call(context.token, "pauseTimer", %{})
 
       %{result: result}
     end
@@ -66,7 +66,7 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
       {:ok, pid} = TimerSupervisor.start_timer(context.user.id, settings)
       Timer.pause(pid)
 
-      result = call!(context.token, "pauseTimer", %{})
+      {:ok, result} = rpc_call(context.token, "pauseTimer", %{})
 
       %{result: result}
     end

@@ -6,7 +6,7 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.StartTimer do
 
   @impl true
   def execute(context, _) do
-    case StartTimer.execute(context.user_id, context.websocket_pid) do
+    case StartTimer.execute(context.user_id) do
       :ok ->
         GetTimer.call(context, %{})
 

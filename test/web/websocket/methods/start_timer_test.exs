@@ -7,7 +7,7 @@ defmodule Test.Web.WebSocket.Methods.StartTimerTest do
 
   describe "common" do
     setup context do
-      result = call!(context.token, "startTimer", %{})
+      {:ok, result} = rpc_call(context.token, "startTimer", %{})
 
       %{result: result}
     end
@@ -40,7 +40,7 @@ defmodule Test.Web.WebSocket.Methods.StartTimerTest do
       {:ok, pid} = TimerSupervisor.start_timer(context.user.id, settings)
       Timer.pause(pid)
 
-      result = call!(context.token, "startTimer", %{})
+      {:ok, result} = rpc_call(context.token, "startTimer", %{})
 
       %{result: result, pid: pid}
     end
@@ -69,7 +69,7 @@ defmodule Test.Web.WebSocket.Methods.StartTimerTest do
         user_id: context.user.id
       )
 
-      result = call!(context.token, "startTimer", %{})
+      {:ok, result} = rpc_call(context.token, "startTimer", %{})
 
       %{result: result}
     end
@@ -101,7 +101,7 @@ defmodule Test.Web.WebSocket.Methods.StartTimerTest do
 
       TimerSupervisor.start_timer(context.user.id, settings)
 
-      result = call!(context.token, "startTimer", %{})
+      {:ok, result} = rpc_call(context.token, "startTimer", %{})
 
       %{result: result}
     end

@@ -4,6 +4,12 @@ defmodule Test.Web.WebSocket.Methods.GetSettingsTest do
   setup :user
 
   describe "common" do
+    setup context do
+      {:ok, result} = rpc_call(context.token, "getSettings", %{})
+
+      %{result: result}
+    end
+
     test "returns timer settings", context do
       assert %{
         "id" => _,
@@ -13,7 +19,7 @@ defmodule Test.Web.WebSocket.Methods.GetSettingsTest do
           "longBreakMin" => 15,
           "workIntervalsCount" => 4
         }
-      } = call!(context.token, "getSettings", %{})
+      } = context.result
     end
   end
 

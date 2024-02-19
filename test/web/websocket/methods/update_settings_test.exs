@@ -8,7 +8,7 @@ defmodule Test.Web.WebSocket.Methods.UpdateSettingsTest do
 
   describe "common" do
     setup context do
-      result = call!(context.token, "updateSettings", %{
+      {:ok, result} = rpc_call(context.token, "updateSettings", %{
         "workMin" => 24,
         "shortBreakMin" => 4,
         "longBreakMin" => 14,
@@ -37,7 +37,7 @@ defmodule Test.Web.WebSocket.Methods.UpdateSettingsTest do
 
   describe "negative work_min" do
     setup context do
-      result = call!(context.token, "updateSettings", %{
+      {:ok, result} = rpc_call(context.token, "updateSettings", %{
         "workMin" => -1,
         "shortBreakMin" => 4,
         "longBreakMin" => 14,

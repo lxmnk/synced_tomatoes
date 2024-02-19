@@ -1,18 +1,19 @@
 defmodule SyncedTomatoes.Core.Commands.StartTimer do
   alias SyncedTomatoes.Core.{Settings, Timer, TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Repos.Postgres
+  alias SyncedTomatoes.Web.WebSocketRegistry
 
-  def execute(user_id, notify_pid) do
+  def execute(user_id) do
     case TimerSupervisor.fetch_timer(user_id) do
       {:ok, timer} ->
         Timer.continue(timer)
 
       {:error, :not_found} ->
-        start_timer(user_id, notify_pid)
+        start_timer(user_id)
     end
   end
 
-  def start_timer(user_id, notify_pid) do
+  def start_timer(user_id) do
     settings = Postgres.get!(Settings, user_id)
     timer_dump = Postgres.get(TimerDump, user_id)
 
@@ -22,7 +23,7 @@ defmodule SyncedTomatoes.Core.Commands.StartTimer do
       long_break_min: settings.long_break_min,
       work_intervals_count: settings.work_intervals_count,
       auto_next: settings.auto_next,
-      notify_pid: notify_pid,
+      notify_fun: fn message -> WebSocketRegistry.publish_to_all(user_id, message) end
     ]
 
     timer_opts = maybe_load_timer_dump(timer_opts, timer_dump)

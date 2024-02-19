@@ -25,11 +25,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
       {:ok, token} ->
         WebSocketRegistry.add(token.user_id, token.device_id)
 
-        state = %{
-          user_id: token.user_id,
-          device_id: token.device_id,
-          websocket_pid: self()
-        }
+        state = %{user_id: token.user_id, device_id: token.device_id}
 
         {:ok, state, :hibernate}
 
@@ -93,8 +89,8 @@ defmodule SyncedTomatoes.Web.WebSocket do
     {:ok, state, :hibernate}
   end
 
-  def terminate(_, _, %{user_id: user_id}) do
-    if SyncedTomatoes.websocket_cleanup_enabled?() do
+  def terminate(_, _, %{user_id: user_id, device_id: device_id}) do
+    if should_run_cleanup?(user_id, device_id) do
       DumpTimer.execute(user_id)
       TimerSupervisor.stop_timer(user_id)
     end
@@ -103,5 +99,10 @@ defmodule SyncedTomatoes.Web.WebSocket do
   end
   def terminate(_, _, %{}) do
     :ok
+  end
+
+  defp should_run_cleanup?(user_id, device_id) do
+    SyncedTomatoes.websocket_cleanup_enabled?()
+      and WebSocketRegistry.only?(user_id, device_id)
   end
 end

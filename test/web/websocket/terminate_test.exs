@@ -1,27 +1,30 @@
 defmodule Test.Web.WebSocket.TerminateTest do
-  use Test.Cases.DBCase
+  use Test.Cases.WSCase
 
   alias SyncedTomatoes.Core.{TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Web.WebSocket
 
   describe "common" do
-    setup do
+    setup :user
+
+    setup context do
       put_env(:websocket_cleanup_enabled?, true)
 
-      user = insert(:user)
+      {:ok, pid} = Test.WebSocketClient.start_link(token: context.token)
+      :ok = Test.WebSocketClient.connect(pid)
+      {:ok, _} = rpc_call(pid, "startTimer", %{})
 
-      settings = [
-        work_min: 25,
-        short_break_min: 5,
-        long_break_min: 15,
-        work_intervals_count: 4,
-        auto_next: true
-      ]
-      {:ok, pid} = TimerSupervisor.start_timer(user.id, settings)
+      {:ok, timer_pid} = TimerSupervisor.fetch_timer(context.user.id)
 
-      result = WebSocket.terminate(:unused, :unused, %{user_id: user.id})
+      result = WebSocket.terminate(
+        :unused,
+        :unused,
+        %{user_id: context.user.id, device_id: context.device_id}
+      )
 
-      %{result: result, user_id: user.id, timer_pid: pid}
+      :ok = Test.WebSocketClient.disconnect(pid)
+
+      %{result: result, timer_pid: timer_pid}
     end
 
     test "returns ok", context do
@@ -33,7 +36,7 @@ defmodule Test.Web.WebSocket.TerminateTest do
         current_work_interval: 1,
         interval_type: "work",
         time_left_ms: time_left_ms
-      } = Postgres.get(TimerDump, context.user_id)
+      } = Postgres.get(TimerDump, context.user.id)
 
       assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
@@ -44,16 +47,27 @@ defmodule Test.Web.WebSocket.TerminateTest do
   end
 
   describe "no active timer" do
-    setup do
-      user = insert(:user)
+    setup :user
 
-      %{user: user}
+    setup context do
+      put_env(:websocket_cleanup_enabled?, true)
+
+      {:ok, pid} = Test.WebSocketClient.start_link(token: context.token)
+      :ok = Test.WebSocketClient.connect(pid)
+
+      result = WebSocket.terminate(
+        :unused,
+        :unused,
+        %{user_id: context.user.id, device_id: context.device_id}
+      )
+
+      :ok = Test.WebSocketClient.disconnect(pid)
+
+      %{result: result}
     end
 
     test "returns ok", context do
-      user_id = context.user.id
-
-      assert :ok = WebSocket.terminate(:unused, :unused, %{user_id: user_id})
+      assert :ok = context.result
     end
   end
 
@@ -61,5 +75,12 @@ defmodule Test.Web.WebSocket.TerminateTest do
     test "returns ok" do
       assert :ok = WebSocket.terminate(:unused, :unused, %{})
     end
+  end
+
+  defp user(_) do
+    user = insert(:user)
+    token = insert(:token, user: user)
+
+    %{user: user, device_id: token.device_id, token: token.value}
   end
 end
