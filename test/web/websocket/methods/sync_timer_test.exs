@@ -35,7 +35,75 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
         "result" => %{
           "state" => "paused",
           "currentWorkInterval" => 2,
-          "intervalType" => "long_break",
+          "intervalType" => "longBreak",
+          "timeLeftMs" => time_left_ms
+        }
+      }}
+
+      assert_in_delta :timer.minutes(8), time_left_ms, 100
+    end
+  end
+
+  describe "two websockets" do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+      %{value: token2} = insert(:token, user: user)
+
+      {:ok, wsc_pid1} = WSClient.start_link(token: token)
+      :ok = WSClient.connect(wsc_pid1)
+      {:ok, wsc_pid2} = WSClient.start_link(token: token2)
+      :ok = WSClient.connect(wsc_pid2)
+
+      :ok = WSClient.send_text(wsc_pid1, build_rpc("startTimer", %{}))
+      assert_receive {{WSClient, ^wsc_pid1}, %{"id" => _, "result" => %{}}}
+
+      {:ok, timer_pid} = TimerSupervisor.fetch_timer(user.id)
+      Timer.pause(timer_pid)
+
+      params = %{
+        intervalType: "longBreak",
+        currentWorkInterval: 2,
+        timeLeftMs: :timer.minutes(8)
+      }
+      :ok = WSClient.send_text(wsc_pid1, build_rpc("syncTimer", params))
+
+      %{wsc_pid1: wsc_pid1, wsc_pid2: wsc_pid2}
+    end
+
+    test "returns synced timer status", %{wsc_pid1: wsc_pid1} do
+      assert_receive {{WSClient, ^wsc_pid1}, %{
+        "id" => _,
+        "result" => %{
+          "state" => "paused",
+          "intervalType" => "longBreak",
+          "currentWorkInterval" => 2,
+          "timeLeftMs" => time_left_ms
+        }
+      }}
+
+      assert_in_delta :timer.minutes(8), time_left_ms, 100
+    end
+
+    test "first websocket doesn't receive event", %{wsc_pid1: wsc_pid1} do
+      refute_receive {{WSClient, ^wsc_pid1}, %{
+        "event" => "timerSynced",
+        "payload" => %{
+          "state" => "paused",
+          "intervalType" => "longBreak",
+          "currentWorkInterval" => 2,
+          "timeLeftMs" => _
+        }
+      }}
+    end
+
+    test "second websocket receives event", %{wsc_pid2: wsc_pid2} do
+      assert_receive {{WSClient, ^wsc_pid2}, %{
+        "event" => "timerSynced",
+        "payload" => %{
+          "state" => "paused",
+          "intervalType" => "longBreak",
+          "currentWorkInterval" => 2,
           "timeLeftMs" => time_left_ms
         }
       }}

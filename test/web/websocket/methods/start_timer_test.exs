@@ -143,7 +143,7 @@ defmodule Test.Web.WebSocket.Methods.StartTimerTest do
         "id" => _,
         "result" => %{
           "state" => "ticking",
-          "intervalType" => "long_break",
+          "intervalType" => "longBreak",
           "currentWorkInterval" => 2,
           "timeLeftMs" => time_left_ms
         }

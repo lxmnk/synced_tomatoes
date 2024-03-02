@@ -4,23 +4,16 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.SyncTimer do
   alias SyncedTomatoes.Core.Commands.SyncTimer
   alias SyncedTomatoes.Core.Types.PositiveInteger
   alias SyncedTomatoes.Web.WebSocket.Methods.GetTimer
+  alias SyncedTomatoes.Web.WebSocketRegistry
 
   defmodule SyncTimerRequest do
     defmodule IntervalType do
       @behaviour Construct.Type
 
-      def cast(value)
-          when is_binary(value) and value in ~w(work shortBreak longBreak)
-      do
-        {:ok, map(value)}
-      end
-      def cast(_) do
-        {:error, :invalid}
-      end
-
-      defp map("work"), do: :work
-      defp map("shortBreak"), do: :short_break
-      defp map("longBreak"), do: :long_break
+      def cast("work"), do: {:ok, :work}
+      def cast("shortBreak"), do: {:ok, :short_break}
+      def cast("longBreak"), do: {:ok, :long_break}
+      def cast(_), do: {:error, :invalid}
     end
 
     use Construct do
@@ -46,10 +39,14 @@ defmodule SyncedTomatoes.Web.WebSocket.Methods.SyncTimer do
 
   @impl true
   def execute(context, sync_data) do
-    case SyncTimer.execute(context.user_id, sync_data) do
-      :ok ->
-        GetTimer.call(context, %{})
+    with :ok <- SyncTimer.execute(context.user_id, sync_data),
+         {:ok, timer_info} <- GetTimer.call(context, %{})
+    do
+      event = %{event: "timerSynced", payload: timer_info}
+      WebSocketRegistry.publish_to_other(context.user_id, context.device_id, event)
 
+      {:ok, timer_info}
+    else
       {:error, :not_found} ->
         {:error, "Timer not started"}
 
