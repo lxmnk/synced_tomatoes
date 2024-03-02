@@ -38,6 +38,66 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
     end
   end
 
+  describe "two websockets" do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+      %{value: token2} = insert(:token, user: user)
+
+      {:ok, wsc_pid1} = WSClient.start_link(token: token)
+      :ok = WSClient.connect(wsc_pid1)
+      {:ok, wsc_pid2} = WSClient.start_link(token: token2)
+      :ok = WSClient.connect(wsc_pid2)
+
+      :ok = WSClient.send_text(wsc_pid1, build_rpc("startTimer", %{}))
+      assert_receive {{WSClient, ^wsc_pid1}, %{"id" => _, "result" => %{}}}
+
+      :ok = WSClient.send_text(wsc_pid1, build_rpc("pauseTimer", %{}))
+
+      %{wsc_pid1: wsc_pid1, wsc_pid2: wsc_pid2}
+    end
+
+    test "returns paused timer status", %{wsc_pid1: wsc_pid1} do
+      assert_receive {{WSClient, ^wsc_pid1}, %{
+        "id" => _,
+        "result" => %{
+          "state" => "paused",
+          "intervalType" => "work",
+          "currentWorkInterval" => 1,
+          "timeLeftMs" => time_left_ms
+        }
+      }}
+
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
+    end
+
+    test "first websocket doesn't receive event", %{wsc_pid1: wsc_pid1} do
+      refute_receive {{WSClient, ^wsc_pid1}, %{
+        "event" => "timerPaused",
+        "payload" => %{
+          "state" => "paused",
+          "intervalType" => "work",
+          "currentWorkInterval" => 1,
+          "timeLeftMs" => _
+        }
+      }}
+    end
+
+    test "second websocket receives event", %{wsc_pid2: wsc_pid2} do
+      assert_receive {{WSClient, ^wsc_pid2}, %{
+        "event" => "timerPaused",
+        "payload" => %{
+          "state" => "paused",
+          "intervalType" => "work",
+          "currentWorkInterval" => 1,
+          "timeLeftMs" => time_left_ms
+        }
+      }}
+
+      assert_in_delta :timer.minutes(25), time_left_ms, 100
+    end
+  end
+
   describe "timer not started" do
     setup do
       user = insert(:user)
