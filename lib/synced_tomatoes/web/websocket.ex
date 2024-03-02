@@ -11,12 +11,14 @@ defmodule SyncedTomatoes.Web.WebSocket do
 
   @invalid_credentials_frame {:close, 1008, "Invalid credentials"}
 
+  @impl true
   def init(request, _) do
     state = %{token: Query.decode(request.qs)["token"]}
 
     {:cowboy_websocket, request, state, %{compress: true}}
   end
 
+  @impl true
   def websocket_init(%{token: nil}) do
     {[@invalid_credentials_frame], %{}}
   end
@@ -34,6 +36,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
     end
   end
 
+  @impl true
   def websocket_handle({:text, request}, state) do
     with {:ok, payload} <- Jsonrs.decode(request),
          {:ok, ws_request} <- WSRequest.make(payload)
@@ -77,6 +80,7 @@ defmodule SyncedTomatoes.Web.WebSocket do
     end
   end
 
+  @impl true
   def websocket_info(message, state) when is_atom(message) do
     event = Jsonrs.encode!(%{
       event: message,
@@ -85,10 +89,16 @@ defmodule SyncedTomatoes.Web.WebSocket do
 
     {:reply, {:text, event}, state, :hibernate}
   end
+  def websocket_info(message, state) when is_map(message) do
+    event = Jsonrs.encode!(message)
+
+    {:reply, {:text, event}, state, :hibernate}
+  end
   def websocket_info(_, state) do
     {:ok, state, :hibernate}
   end
 
+  @impl true
   def terminate(_, _, %{user_id: user_id, device_id: device_id}) do
     if should_run_cleanup?(user_id, device_id) do
       DumpTimer.execute(user_id)

@@ -2,62 +2,76 @@ defmodule Test.Web.WebSocketTest do
   use Test.Cases.WSCase
 
   describe "not authenticated" do
-    test "closes websocket" do
-      assert {
-        :error, {:close, 1008, "Invalid credentials"}
-      } = raw_call(nil, Jsonrs.encode!(%{}))
+    setup do
+      {:ok, wsc_pid} = ws_send("invalid_token", "{}")
+
+      %{wsc_pid: wsc_pid}
+    end
+
+    test "closes connection", %{wsc_pid: wsc_pid} do
+      refute_receive {{WSClient, ^wsc_pid}, _}
     end
   end
 
   describe "invalid json" do
-    setup :user_auth
+    setup do
+      %{value: token} = insert(:token, user: build(:user))
 
-    test "returns error", context do
-      assert {:ok, response} = raw_call(context.token, ~s|{"invalid": "json|)
+      {:ok, wsc_pid} = ws_send(token, ~s|{"invalid": "json|)
 
-      assert %{
+      %{wsc_pid: wsc_pid}
+    end
+
+    test "returns error", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => nil,
         "error" => "Request validation error",
         "reason" => "EOF while parsing" <> _
-      } = Jsonrs.decode!(response)
+      }}
     end
   end
 
   describe "invalid request" do
-    setup :user_auth
+    setup do
+      %{value: token} = insert(:token, user: build(:user))
 
-    test "returns error", context do
       request = Jsonrs.encode!(%{method: "missing", params: %{}})
-      assert {:ok, response} = raw_call(context.token, request)
 
-      assert %{
+      {:ok, wsc_pid} = ws_send(token, request)
+
+      %{wsc_pid: wsc_pid}
+    end
+
+    test "returns error", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => nil,
         "error" => "Request validation error",
         "reason" => %{"id" => "missing"}
-      } = Jsonrs.decode!(response)
+      }}
     end
   end
 
   describe "method not found" do
-    setup :user_auth
+    setup do
+      %{value: token} = insert(:token, user: build(:user))
+
+      id = UUID4.generate()
+      request = Jsonrs.encode!(%{id: id, method: "missing", params: %{}})
+
+      {:ok, wsc_pid} = ws_send(token, request)
+
+      %{wsc_pid: wsc_pid, request_id: id}
+    end
 
     test "returns error", context do
-      id = UUID4.generate()
+      wsc_pid = context.wsc_pid
+      id = context.request_id
 
-      request = Jsonrs.encode!(%{id: id, method: "missing", params: %{}})
-      assert {:ok, response} = raw_call(context.token, request)
-
-      assert %{
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => ^id,
         "error" => "Method call error",
         "reason" => "Method not found"
-      } = Jsonrs.decode!(response)
+      }}
     end
-  end
-
-  defp user_auth(_) do
-    token = insert(:token, user: build(:user))
-
-    %{token: token.value}
   end
 end

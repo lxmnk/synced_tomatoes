@@ -1,5 +1,5 @@
 defmodule Test.Core.TimerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias SyncedTomatoes.Core.Timer
 

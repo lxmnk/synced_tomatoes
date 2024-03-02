@@ -3,15 +3,18 @@ defmodule Test.Web.WebSocket.Events.ShortBreakFinishedTest do
 
   alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
 
-  setup :user
-
   describe "common" do
-    setup context do
-      {:ok, pid} = Test.WebSocketClient.start_link(token: context.token)
-      :ok = Test.WebSocketClient.connect(pid)
-      {:ok, _} = rpc_call(pid, "startTimer", %{})
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
 
-      {:ok, timer_pid} = TimerSupervisor.fetch_timer(context.user.id)
+      {:ok, wsc_pid} = rpc_call(token, "startTimer")
+      assert_receive {{WSClient, ^wsc_pid}, %{
+        "id" => _,
+        "result" => %{"state" => "ticking"}
+      }}
+
+      {:ok, timer_pid} = TimerSupervisor.fetch_timer(user.id)
       Timer.pause(timer_pid)
       Timer.sync(timer_pid, %{
         interval_type: :short_break,
@@ -20,33 +23,35 @@ defmodule Test.Web.WebSocket.Events.ShortBreakFinishedTest do
       })
       Timer.continue(timer_pid)
 
-      {:ok, event} = rpc_event(pid)
-
-      :ok = Test.WebSocketClient.disconnect(pid)
-
-      %{event: event}
+      %{wsc_pid: wsc_pid}
     end
 
-    test "receives event", context do
-      assert %{
+    test "receives event", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "event" => "short_break_finished",
         "payload" => %{}
-      } = context.event
+      }}
     end
   end
 
   describe "two websockets" do
-    setup context do
-      %{value: token2} = insert(:token, user: context.user)
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+      %{value: token2} = insert(:token, user: user)
 
-      {:ok, pid1} = Test.WebSocketClient.start_link(token: context.token)
-      :ok = Test.WebSocketClient.connect(pid1)
-      {:ok, pid2} = Test.WebSocketClient.start_link(token: token2)
-      :ok = Test.WebSocketClient.connect(pid2)
+      {:ok, wsc_pid1} = WSClient.start_link(token: token)
+      :ok = WSClient.connect(wsc_pid1)
+      {:ok, wsc_pid2} = WSClient.start_link(token: token2)
+      :ok = WSClient.connect(wsc_pid2)
 
-      {:ok, _} = rpc_call(pid1, "startTimer", %{})
+      :ok = WSClient.send_text(wsc_pid1, build_rpc("startTimer", %{}))
+      assert_receive {{WSClient, ^wsc_pid1}, %{
+        "id" => _,
+        "result" => %{"state" => "ticking"}
+      }}
 
-      {:ok, timer_pid} = TimerSupervisor.fetch_timer(context.user.id)
+      {:ok, timer_pid} = TimerSupervisor.fetch_timer(user.id)
       Timer.pause(timer_pid)
       Timer.sync(timer_pid, %{
         interval_type: :short_break,
@@ -55,48 +60,21 @@ defmodule Test.Web.WebSocket.Events.ShortBreakFinishedTest do
       })
       Timer.continue(timer_pid)
 
-      test_pid = self()
-      spawn(fn ->
-        {:ok, event} = rpc_event(pid1)
-        send(test_pid, {:event1, event})
-      end)
-      spawn(fn ->
-        {:ok, event} = rpc_event(pid2)
-        send(test_pid, {:event2, event})
-      end)
-      Process.sleep(100)
-
-      :ok = Test.WebSocketClient.disconnect(pid1)
-      :ok = Test.WebSocketClient.disconnect(pid2)
-
-      :ok
+      %{wsc_pid1: wsc_pid1, wsc_pid2: wsc_pid2}
     end
 
-    test "first websocket receives event" do
-      assert_received {
-        :event1,
-        %{
-          "event" => "short_break_finished",
-          "payload" => %{}
-        }
-      }
+    test "first websocket receives event", %{wsc_pid1: wsc_pid1} do
+      assert_receive {{WSClient, ^wsc_pid1}, %{
+        "event" => "short_break_finished",
+        "payload" => %{}
+      }}
     end
 
-    test "second websocket receives event" do
-      assert_received {
-        :event2,
-        %{
-          "event" => "short_break_finished",
-          "payload" => %{}
-        }
-      }
+    test "second websocket receives event", %{wsc_pid2: wsc_pid2} do
+      assert_receive {{WSClient, ^wsc_pid2}, %{
+        "event" => "short_break_finished",
+        "payload" => %{}
+      }}
     end
-  end
-
-  defp user(_) do
-    user = insert(:user)
-    token = insert(:token, user: user)
-
-    %{user: user, token: token.value}
   end
 end

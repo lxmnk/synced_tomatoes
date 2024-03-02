@@ -28,4 +28,12 @@ defmodule SyncedTomatoes.Web.WebSocketRegistry do
       end
     end)
   end
+
+  def publish_to_other(user_id, current_device_id, message) do
+    Registry.dispatch(@registry_name, user_id, fn entries ->
+      for {pid, device_id} <- entries, device_id != current_device_id do
+        send(pid, message)
+      end
+    end)
+  end
 end

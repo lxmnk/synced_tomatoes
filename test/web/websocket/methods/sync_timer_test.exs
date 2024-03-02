@@ -3,10 +3,11 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
 
   alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
 
-  setup :user
-
   describe "common" do
-    setup context do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+
       settings = [
         work_min: 25,
         short_break_min: 5,
@@ -15,21 +16,21 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
         auto_next: true
       ]
 
-      {:ok, pid} = TimerSupervisor.start_timer(context.user.id, settings)
-      Timer.pause(pid)
+      {:ok, timer_pid} = TimerSupervisor.start_timer(user.id, settings)
+      Timer.pause(timer_pid)
 
       params = %{
         intervalType: "longBreak",
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
-      {:ok, result} = rpc_call(context.token, "syncTimer", params)
+      {:ok, wsc_pid} = rpc_call(token, "syncTimer", params)
 
-      %{result: result, timer_pid: pid}
+      %{wsc_pid: wsc_pid, timer_pid: timer_pid}
     end
 
-    test "returns synced timer status", context do
-      assert %{
+    test "returns synced timer status", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "result" => %{
           "state" => "paused",
@@ -37,14 +38,17 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
           "intervalType" => "long_break",
           "timeLeftMs" => time_left_ms
         }
-      } = context.result
+      }}
 
       assert_in_delta :timer.minutes(8), time_left_ms, 100
     end
   end
 
   describe "timer is ticking" do
-    setup context do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+
       settings = [
         work_min: 25,
         short_break_min: 5,
@@ -53,52 +57,48 @@ defmodule Test.Web.WebSocket.Methods.SyncTimerTest do
         auto_next: true
       ]
 
-      TimerSupervisor.start_timer(context.user.id, settings)
+      TimerSupervisor.start_timer(user.id, settings)
 
       params = %{
         intervalType: "longBreak",
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
-      {:ok, result} = rpc_call(context.token, "syncTimer", params)
+      {:ok, wsc_pid} = rpc_call(token, "syncTimer", params)
 
-      %{result: result}
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns error", context do
-      assert %{
+    test "returns error", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "error" => "Method call error",
         "reason" => "Can't sync ticking timer"
-      } = context.result
+      }}
     end
   end
 
   describe "timer not started" do
-    setup context do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+
       params = %{
         intervalType: "longBreak",
         currentWorkInterval: 2,
         timeLeftMs: :timer.minutes(8)
       }
-      {:ok, result} = rpc_call(context.token, "syncTimer", params)
+      {:ok, wsc_pid} = rpc_call(token, "syncTimer", params)
 
-      %{result: result}
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns error", context do
-      assert %{
+    test "returns error", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "error" => "Method call error",
         "reason" => "Timer not started"
-      } = context.result
+      }}
     end
-  end
-
-  defp user(_) do
-    user = insert(:user)
-    token = insert(:token, user: user)
-
-    %{user: user, token: token.value}
   end
 end

@@ -1,5 +1,5 @@
 defmodule SyncedTomatoes.Web.Router do
   use SyncedTomatoes.Web, :router
 
-  forward "/api/v1", to: SyncedTomatoes.Web.API.V1
+  post "/api/v1/register", to: SyncedTomatoes.Web.API.V1.Register
 end

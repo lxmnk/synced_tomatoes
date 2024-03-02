@@ -1,17 +1,18 @@
 defmodule Test.Web.WebSocket.Methods.GetSettingsTest do
   use Test.Cases.WSCase
 
-  setup :user
-
   describe "common" do
-    setup context do
-      {:ok, result} = rpc_call(context.token, "getSettings", %{})
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
 
-      %{result: result}
+      {:ok, wsc_pid} = rpc_call(token, "getSettings")
+
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns timer settings", context do
-      assert %{
+    test "returns timer settings", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "result" => %{
           "workMin" => 25,
@@ -19,14 +20,7 @@ defmodule Test.Web.WebSocket.Methods.GetSettingsTest do
           "longBreakMin" => 15,
           "workIntervalsCount" => 4
         }
-      } = context.result
+      }}
     end
-  end
-
-  defp user(_) do
-    user = insert(:user)
-    token = insert(:token, user: user)
-
-    %{user: user, token: token.value}
   end
 end

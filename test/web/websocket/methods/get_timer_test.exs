@@ -3,19 +3,20 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
 
   alias SyncedTomatoes.Core.TimerSupervisor
 
-  setup :user
-
   describe "timer not started" do
-    setup context do
-      {:ok, result} = rpc_call(context.token, "getTimer", %{})
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
 
-      %{result: result}
+      {:ok, wsc_pid} = rpc_call(token, "getTimer")
+
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns default timer", context do
+    test "returns default timer", %{wsc_pid: wsc_pid} do
       time_left_ms = :timer.minutes(25)
 
-      assert %{
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "result" => %{
           "state" => "stopped",
@@ -23,12 +24,15 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
           "timeLeftMs" => ^time_left_ms,
           "currentWorkInterval" => 1
         }
-      } = context.result
+      }}
     end
   end
 
   describe "timer started" do
-    setup context do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+
       settings = [
         work_min: 25,
         short_break_min: 5,
@@ -37,15 +41,15 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
         auto_next: true
       ]
 
-      TimerSupervisor.start_timer(context.user.id, settings)
+      TimerSupervisor.start_timer(user.id, settings)
 
-      {:ok, result} = rpc_call(context.token, "getTimer", %{})
+      {:ok, wsc_pid} = rpc_call(token, "getTimer")
 
-      %{result: result}
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns timer", context do
-      assert %{
+    test "returns timer", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "result" => %{
           "state" => "ticking",
@@ -53,16 +57,9 @@ defmodule Test.Web.WebSocket.Methods.GetTimerTest do
           "timeLeftMs" => time_left_ms,
           "currentWorkInterval" => 1
         }
-      } = context.result
+      }}
 
       assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
-  end
-
-  defp user(_) do
-    user = insert(:user)
-    token = insert(:token, user: user)
-
-    %{user: user, token: token.value}
   end
 end

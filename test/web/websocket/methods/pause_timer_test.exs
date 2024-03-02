@@ -3,10 +3,11 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
 
   alias SyncedTomatoes.Core.{Timer, TimerSupervisor}
 
-  setup :user
-
   describe "common" do
-    setup context do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+
       settings = [
         work_min: 25,
         short_break_min: 5,
@@ -15,15 +16,15 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
         auto_next: true
       ]
 
-      TimerSupervisor.start_timer(context.user.id, settings)
+      TimerSupervisor.start_timer(user.id, settings)
 
-      {:ok, result} = rpc_call(context.token, "pauseTimer", %{})
+      {:ok, wsc_pid} = rpc_call(token, "pauseTimer")
 
-      %{result: result}
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns paused timer status", context do
-      assert %{
+    test "returns paused timer status", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "result" => %{
           "currentWorkInterval" => 1,
@@ -31,30 +32,36 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
           "state" => "paused",
           "timeLeftMs" => time_left_ms
         }
-      } = context.result
+      }}
 
       assert_in_delta :timer.minutes(25), time_left_ms, 100
     end
   end
 
   describe "timer not started" do
-    setup context do
-      {:ok, result} = rpc_call(context.token, "pauseTimer", %{})
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
 
-      %{result: result}
+      {:ok, wsc_pid} = rpc_call(token, "pauseTimer")
+
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns error", context do
-      assert %{
+    test "returns error", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "error" => "Method call error",
         "reason" => "Timer not started"
-      } = context.result
+      }}
     end
   end
 
   describe "timer already paused" do
-    setup context do
+    setup do
+      user = insert(:user)
+      %{value: token} = insert(:token, user: user)
+
       settings = [
         work_min: 25,
         short_break_min: 5,
@@ -63,27 +70,20 @@ defmodule Test.Web.WebSocket.Methods.PauseTimerTest do
         auto_next: true
       ]
 
-      {:ok, pid} = TimerSupervisor.start_timer(context.user.id, settings)
-      Timer.pause(pid)
+      {:ok, timer_pid} = TimerSupervisor.start_timer(user.id, settings)
+      Timer.pause(timer_pid)
 
-      {:ok, result} = rpc_call(context.token, "pauseTimer", %{})
+      {:ok, wsc_pid} = rpc_call(token, "pauseTimer")
 
-      %{result: result}
+      %{wsc_pid: wsc_pid}
     end
 
-    test "returns error", context do
-      assert %{
+    test "returns error", %{wsc_pid: wsc_pid} do
+      assert_receive {{WSClient, ^wsc_pid}, %{
         "id" => _,
         "error" => "Method call error",
         "reason" => "Already paused"
-      } = context.result
+      }}
     end
-  end
-
-  defp user(_) do
-    user = insert(:user)
-    token = insert(:token, user: user)
-
-    %{user: user, token: token.value}
   end
 end

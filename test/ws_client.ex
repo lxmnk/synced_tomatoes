@@ -1,19 +1,22 @@
-defmodule Test.WebSocketClient do
+defmodule Test.WSClient do
   use GenServer
 
   defmodule State do
-    defstruct ~w(token conn ref websocket)a
+    defstruct ~w(token notifier_pid conn ref websocket)a
   end
 
   def start_link(opts) do
+    opts = Keyword.put(opts, :notifier_pid, self())
+
     GenServer.start_link(__MODULE__, opts)
   end
 
   @impl true
   def init(opts) do
-    token = Keyword.get(opts, :token)
+    token = Keyword.fetch!(opts, :token)
+    notifier_pid = Keyword.fetch!(opts, :notifier_pid)
 
-    {:ok, %State{token: token}}
+    {:ok, %State{token: token, notifier_pid: notifier_pid}}
   end
 
   def connect(pid) do
@@ -37,7 +40,7 @@ defmodule Test.WebSocketClient do
     {:ok, conn} = Mint.HTTP.connect(:http, "127.0.0.1", SyncedTomatoes.http_port)
     {:ok, conn, ref} = Mint.WebSocket.upgrade(:ws, conn, "/ws?token=#{token}", [])
 
-    {:ok, upgrade_reply} = receive_with_timeout()
+    {:ok, upgrade_reply} = receive_tcp_frame()
 
     {:ok, conn, [{:status, ^ref, status}, {:headers, ^ref, resp_headers}, {:done, ^ref}]} =
       Mint.WebSocket.stream(conn, upgrade_reply)
@@ -52,7 +55,7 @@ defmodule Test.WebSocketClient do
     {:ok, websocket, data} = Mint.WebSocket.encode(websocket, :close)
 
     with {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data),
-         {:ok, close_response} <- receive_with_timeout(),
+         {:ok, close_response} <- receive_tcp_frame(),
          {:ok, conn, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, close_response)
     do
       {:ok, _, [{:close, 1_000, ""}]} = Mint.WebSocket.decode(websocket, data)
@@ -73,7 +76,7 @@ defmodule Test.WebSocketClient do
 
   @impl true
   def handle_call(:receive_text, _, %{conn: conn, ref: ref, websocket: websocket} = state) do
-    with {:ok, reply} <- receive_with_timeout(),
+    with {:ok, reply} <- receive_tcp_frame(),
          {:ok, _, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, reply),
          {:ok, _, [{:text, text}]} <- Mint.WebSocket.decode(websocket, data)
     do
@@ -87,20 +90,45 @@ defmodule Test.WebSocketClient do
     end
   end
 
-  defp receive_with_timeout(timeout \\ 1_000) do
-    reply =
-      receive do
-        message -> message
-      after
-        timeout -> {:error, :frame_not_received}
-      end
+  @impl true
+  def handle_info(
+    {:tcp, _, _} = tcp_frame,
+    %{notifier_pid: notifier_pid, conn: conn, ref: ref, websocket: websocket} = state
+  )
+  do
+    with {:ok, _, [{:data, ^ref, data}]} <- Mint.WebSocket.stream(conn, tcp_frame),
+         {:ok, _, [{:text, text}]} <- Mint.WebSocket.decode(websocket, data)
+    do
+      event = maybe_decode_event(text)
+      send(notifier_pid, {{__MODULE__, self()}, event})
+    end
 
-    case reply do
-      {:tcp, _, _} ->
+    {:noreply, %{state | conn: conn, ref: ref, websocket: websocket}}
+  end
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
+  defp maybe_decode_event(text) do
+    case Jsonrs.decode(text) do
+      {:ok, decoded} ->
+        decoded
+
+      _ ->
+        text
+    end
+  end
+
+  defp receive_tcp_frame(timeout \\ 1_000) do
+    receive do
+      {:tcp, _, _} = reply ->
         {:ok, reply}
 
-      error ->
-        error
+      {:error, reason} ->
+        {:error, reason}
+    after
+      timeout ->
+        {:error, :frame_not_received}
     end
   end
 end
