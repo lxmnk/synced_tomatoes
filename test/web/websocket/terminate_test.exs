@@ -3,6 +3,7 @@ defmodule Test.Web.WebSocket.TerminateTest do
 
   alias SyncedTomatoes.Core.{TimerDump, TimerSupervisor}
   alias SyncedTomatoes.Web.WebSocket
+  alias SyncedTomatoes.Web.WebSocketRegistry
 
   describe "common" do
     setup do
@@ -13,13 +14,16 @@ defmodule Test.Web.WebSocket.TerminateTest do
 
       {:ok, wsc_pid} = WSClient.start_link(token: token)
       :ok = WSClient.connect(wsc_pid)
-      :ok = WSClient.send_text(wsc_pid, build_rpc("startTimer", %{}))
-      assert_receive {{WSClient, ^wsc_pid}, %{
-        "id" => _,
-        "result" => %{"state" => "ticking"}
-      }}
 
-      {:ok, timer_pid} = TimerSupervisor.fetch_timer(user.id)
+      settings = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+      {:ok, timer_pid} = TimerSupervisor.start_timer(user.id, settings)
+      WebSocketRegistry.add(user.id, device_id)
 
       result = WebSocket.terminate(
         :unused,
@@ -55,20 +59,23 @@ defmodule Test.Web.WebSocket.TerminateTest do
 
       user = insert(:user)
       %{value: token, device_id: device_id} = insert(:token, user: user)
-      %{value: token2} = insert(:token, user: user)
+      %{value: token2, device_id: device_id2} = insert(:token, user: user)
 
       {:ok, wsc_pid1} = WSClient.start_link(token: token)
       :ok = WSClient.connect(wsc_pid1)
       {:ok, wsc_pid2} = WSClient.start_link(token: token2)
       :ok = WSClient.connect(wsc_pid2)
 
-      :ok = WSClient.send_text(wsc_pid1, build_rpc("startTimer", %{}))
-      assert_receive {{WSClient, ^wsc_pid1}, %{
-        "id" => _,
-        "result" => %{"state" => "ticking"}
-      }}
-
-      {:ok, timer_pid} = TimerSupervisor.fetch_timer(user.id)
+      settings = [
+        work_min: 25,
+        short_break_min: 5,
+        long_break_min: 15,
+        work_intervals_count: 4,
+        auto_next: true
+      ]
+      {:ok, timer_pid} = TimerSupervisor.start_timer(user.id, settings)
+      WebSocketRegistry.add(user.id, device_id)
+      WebSocketRegistry.add(user.id, device_id2)
 
       result = WebSocket.terminate(
         :unused,
